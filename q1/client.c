@@ -32,8 +32,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < 100; i++)
         buff[i] = '\0';
     char x= recv(sockfd, buff, 100, 0);
-    printf("%d",x);
-    printf("Received: '%s'", buff);
+    printf("Current date and time: %s", buff);
   
     return 0;
 }
