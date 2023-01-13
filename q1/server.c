@@ -50,8 +50,6 @@ int main(int argc, char **argv)
         printf("A new client connected\n");
         time(&t);
         strcpy(buff, ctime(&t));
-        printf("%s",buff);
-        printf("%d ooo",strlen(buff));
         if (send(newSockfd, buff, strlen(buff) + 1, 0) < 0)
         {
             perror("Unable to send the message to client :( error");
