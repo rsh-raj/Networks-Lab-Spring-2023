@@ -8,8 +8,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
-int main()
+int main(int argc, char **argv)
 {
+    int port = 20000;
+    if (argc > 1)
+    {
+        port = atoi(argv[1]);
+    }
     int sockfd, newSockfd;
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -19,7 +24,7 @@ int main()
     struct sockaddr_in serveAddr, clientAddr;
     serveAddr.sin_addr.s_addr = INADDR_ANY;
     serveAddr.sin_family = AF_INET;
-    serveAddr.sin_port = htons(2000);
+    serveAddr.sin_port = htons(port);
     if (bind(sockfd, (struct sockaddr *)&serveAddr, sizeof(serveAddr)) < 0)
 
     {
@@ -42,7 +47,6 @@ int main()
             perror("Unable to accept the connection :(");
             exit(0);
         }
-        // printf("%d", newSockfd);
         printf("A new client connected\n");
         time(&t);
         strcpy(buff, ctime(&t));
@@ -52,7 +56,7 @@ int main()
         {
             perror("Unable to send the message to client :( error");
         }
-        // printf("Sent: %d",x);
+        printf("Date and time sent to client and client disconnected\n");
         close(newSockfd);
     }
 
