@@ -9,6 +9,7 @@
 #include <unistd.h>
 void resetBuffer(char *buff, int MAX_LEN);
 void receiveWrapper(int sockfd, char **buff);
+void sendWrapper(int sockfd, char *buff);
 int main(int argc, char **argv)
 {
 
@@ -37,7 +38,8 @@ int main(int argc, char **argv)
     char userName[26];
     scanf("%s", userName);
     getchar(); // delete \n from buffer
-    send(sockfd, userName, strlen(userName) + 1, 0);
+    // send(sockfd, userName, strlen(userName) + 1, 0);
+    sendWrapper(sockfd, userName);
     resetBuffer(buff, 50);
     receiveWrapper(sockfd, &buff);
     if (strcmp(buff, "FOUND") == 0)
@@ -49,11 +51,20 @@ int main(int argc, char **argv)
             char command[100];
             fgets(command, 1000, stdin);
             command[strlen(command) - 1] = '\0';
-            send(sockfd, command, strlen(command) + 1, 0);
-            char *result=(char *)malloc(10000*sizeof(char));
+            sendWrapper(sockfd, command);
+            char *result = (char *)malloc(10000 * sizeof(char));
             resetBuffer(result, 10000);
             receiveWrapper(sockfd, &result);
-            printf("%s\n", result);
+            if (strcmp(result,"$$$$")==0)
+            {
+                printf("Invalid command\n");
+            }
+            else if (strcmp("####",result)==0)
+            {
+                printf("Error in running command\n");
+            }
+            else
+                printf("%s\n", result);
             if (strcmp(command, "exit") == 0)
                 break;
         }
@@ -70,15 +81,47 @@ int main(int argc, char **argv)
 void receiveWrapper(int sockfd, char **buff)
 {
     char recvBuffer[50];
-    resetBuffer(recvBuffer, 50);
-    recv(sockfd, recvBuffer, 50, 0);
-    strcat(*buff, recvBuffer);
-    printf("inside wrapper: %s %d\n", recvBuffer, strlen(recvBuffer));
-    while (recvBuffer[strlen(recvBuffer)] != '\0')
+    while (1)
     {
         resetBuffer(recvBuffer, 50);
-        recv(sockfd, recvBuffer, 50, 0);
-        strcat(*buff, recvBuffer);
+        int x = recv(sockfd, recvBuffer, 20, 0);
+        if (recvBuffer[x - 1] != '\0')
+        {
+            recvBuffer[x] = '\0';
+            strcat(*buff, recvBuffer);
+        }
+        else
+        {
+            strcat(*buff, recvBuffer);
+            break;
+        }
+    }
+}
+void sendWrapper(int sockfd, char *buff)
+{
+
+    int i = 0;
+    while (i <= strlen(buff))
+    {
+        char sendBuff[50];
+        resetBuffer(sendBuff, 50);
+        int k = 0;
+        int j;
+        for (j = i; j <= strlen(buff) && j < i + 49; j++)
+        {
+            sendBuff[k] = buff[j];
+            k++;
+        }
+        if (sendBuff[k - 1] == '\0')
+        {
+            send(sockfd, sendBuff, strlen(sendBuff) + 1, 0);
+        }
+        else
+        {
+            send(sockfd, sendBuff, strlen(sendBuff), 0);
+        }
+
+        i += 49;
     }
 }
 void resetBuffer(char *buff, int MAX_LEN)
