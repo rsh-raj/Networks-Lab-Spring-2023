@@ -1,6 +1,6 @@
 ### Compiling 
 compile the server.c using this <br />
-`$ gcc server.c -o server`
+`$ gcc server_it.c -o server`
 
 compile the client.c using this  <br />
 `$ gcc client.c -o client`

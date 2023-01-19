@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     {
         char expression[100000], result[100];
         resetBuffer(buff);
-        // printf("Enter the expression you want to evaluate and press the enter key when you are done\n");
+         printf("Enter the expression you want to evaluate and press the enter key when you are done\n");
         char ch = '1';
         int i = 0;
         while (ch != '\n')

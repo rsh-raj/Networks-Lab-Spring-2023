@@ -1,9 +1,9 @@
 ### Compiling 
 compile the server.c using this <br />
-`$ gcc server.c -o server`
+`$ gcc time_server.c -o server`
 
 compile the client.c using this  <br />
-`$ gcc client.c -o client`
+`$ gcc time_client.c -o client`
 
 P.S. Alternatively you can use the precompiled binaries
 included in this folder
