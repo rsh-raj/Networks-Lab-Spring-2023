@@ -12,8 +12,8 @@ void receiveWrapper(int sockfd, char **buff);
 void sendWrapper(int sockfd, char *buff);
 int main(int argc, char **argv)
 {
-
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0), serverPort = 2000;
+    //normal tcp routine to connect to server
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0), serverPort = 20000;
     if (argc > 1)
         serverPort = atoi(argv[1]);
     if (sockfd < 0)
@@ -24,9 +24,9 @@ int main(int argc, char **argv)
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = serverPort;
-    inet_aton("127.0.0.1", &serverAddr.sin_addr);
+    inet_aton("192.168.50.177", &serverAddr.sin_addr);
     socklen_t socklen = sizeof(serverAddr);
-    if (connect(sockfd, (const struct sockaddr *)&serverAddr, socklen) < 0)
+    if (connect(sockfd, (const struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
     {
         perror("Unable to connect to server :(");
         exit(EXIT_FAILURE);
@@ -42,19 +42,24 @@ int main(int argc, char **argv)
     sendWrapper(sockfd, userName);
     resetBuffer(buff, 50);
     receiveWrapper(sockfd, &buff);
+    //if user is found
     if (strcmp(buff, "FOUND") == 0)
     {
         printf("Login Successful!!!\n");
         while (1)
         {
+            //get command from user and send it to server
             printf("Enter your command$ ");
             char command[100];
             fgets(command, 1000, stdin);
             command[strlen(command) - 1] = '\0';
             sendWrapper(sockfd, command);
+            if (strcmp(command, "exit") == 0)
+                break;
             char *result = (char *)malloc(10000 * sizeof(char));
             resetBuffer(result, 10000);
             receiveWrapper(sockfd, &result);
+            //print the result
             if (strcmp(result,"$$$$")==0)
             {
                 printf("Invalid command\n");
@@ -65,10 +70,10 @@ int main(int argc, char **argv)
             }
             else
                 printf("%s\n", result);
-            if (strcmp(command, "exit") == 0)
-                break;
+          
         }
     }
+    //if user is not found
     else
     {
         printf("Unable to validate user :(, closing the connection");
@@ -78,6 +83,7 @@ int main(int argc, char **argv)
 
     return 0;
 }
+//wrapper function to receive data from server in chunks of 20 bytes
 void receiveWrapper(int sockfd, char **buff)
 {
     char recvBuffer[50];
@@ -97,6 +103,7 @@ void receiveWrapper(int sockfd, char **buff)
         }
     }
 }
+//wrapper function to send data to server in chunks of max (50) bytes
 void sendWrapper(int sockfd, char *buff)
 {
 
@@ -124,6 +131,7 @@ void sendWrapper(int sockfd, char *buff)
         i += 49;
     }
 }
+//function to reset buffer
 void resetBuffer(char *buff, int MAX_LEN)
 {
     for (int i = 0; i < MAX_LEN; i++)

@@ -49,7 +49,8 @@ int main()
 	   specifies the port number of the server.
 	*/
 	serv_addr.sin_family = AF_INET;
-	inet_aton("192.168.137.247", &serv_addr.sin_addr);
+	// serv_addr.sin_addr.s_addr = INADDR_ANY;
+	inet_aton("192.168.50.177", &serv_addr.sin_addr);
 	serv_addr.sin_port = htons(20000);
 
 	/* With the information provided in serv_addr, we associate the server
@@ -100,26 +101,21 @@ int main()
 			and send the message to the client.
 		*/
 
-		// strcpy(buf,"Message from server");
-		while (1)
-		{
-			printf("Enter the message: ");
-			gets(buf);
-			send(newsockfd, buf, strlen(buf) + 1, 0);
+		strcpy(buf, "Message from server");
+		send(newsockfd, buf, strlen(buf) + 1, 0);
 
-			/* We now receive a message from the client. For this example
-			   we make an assumption that the entire message sent from the
-			   client will come together. In general, this need not be true
-			   for TCP sockets (unlike UDPi sockets), and this program may not
-			   always work (for this example, the chance is very low as the
-			   message is very short. But in general, there has to be some
-			   mechanism for the receiving side to know when the entire message
-			  is received. Look up the return value of recv() to see how you
-			  can do this.
-			*/
-			recv(newsockfd, buf, 100, 0);
-			printf("%s\n", buf);
-		}
+		/* We now receive a message from the client. For this example
+		   we make an assumption that the entire message sent from the
+		   client will come together. In general, this need not be true
+		   for TCP sockets (unlike UDPi sockets), and this program may not
+		   always work (for this example, the chance is very low as the
+		   message is very short. But in general, there has to be some
+		   mechanism for the receiving side to know when the entire message
+		  is received. Look up the return value of recv() to see how you
+		  can do this.
+		*/
+		recv(newsockfd, buf, 100, 0);
+		printf("%s\n", buf);
 
 		close(newsockfd);
 	}

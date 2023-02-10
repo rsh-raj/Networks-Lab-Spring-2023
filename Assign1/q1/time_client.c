@@ -31,8 +31,8 @@ int main(int argc, char **argv)
     char buff[100];
     for (int i = 0; i < 100; i++)
         buff[i] = '\0';
-    char x= recv(sockfd, buff, 100, 0);
+    char x = recv(sockfd, buff, 100, 0);
     printf("Current date and time: %s", buff);
-  
+
     return 0;
 }
