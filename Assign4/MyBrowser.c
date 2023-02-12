@@ -51,6 +51,7 @@ char **tokenize_command(char *cmd)
                 continue;
             }
             temp[cnt++] = cmd[i++];
+            //added random
         }
 
         temp[cnt++] = '\0';
