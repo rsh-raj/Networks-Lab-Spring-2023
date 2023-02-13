@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <time.h>
+#include <ctype.h>
 // parse the http request
 typedef enum Method
 {
@@ -172,26 +174,58 @@ void print_request(struct Request *request)
     }
 }
 // helper function to receive the data in chunks(50 bytes)
-void receiveWrapper(int sockfd, char **buff)
+char *receiveHeader(int sockfd)
 {
-    char recvBuffer[50];
-    *buff = (char *)malloc(51 * sizeof(char));
+
+    char *recvBuffer = (char *)malloc(51 * sizeof(char));
+    char *buff = (char *)malloc(51 * sizeof(char));
+    strcpy(buff, "\0");
+    char *startingEntityBody;
+    int length = 0;
+    while (1)
+    {
+        resetBuffer(recvBuffer, 51);
+        int x = recv(sockfd, recvBuffer, 50, 0);
+        // printf("x: %d", x);
+        if (x <= 0)
+        {
+            printf("Error receiving data!\n");
+            return;
+        }
+        strcat(buff, recvBuffer);
+        char *endOfHeader = strstr(recvBuffer, "\r\n\r\n");
+        if (endOfHeader)
+        {
+            startingEntityBody = strdup(recvBuffer);
+            break;
+        }
+        realloc(buff, strlen(buff) + 51);
+    }
+    // printf("Header received succesfully!\n");
+    free(recvBuffer);
+    return buff;
+}
+void receive_and_write_to_file(int sockfd, char *url, int contentLength, char *startingMsg)
+{
+    FILE *fp = fopen(url, "w");
+    if (fp == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(EXIT_FAILURE);
+    }
+    fwrite(startingMsg, 1, strlen(startingMsg), fp);
+    char *recvBuffer = (char *)malloc(51 * sizeof(char));
+    int length = 0;
     while (1)
     {
         resetBuffer(recvBuffer, 50);
         int x = recv(sockfd, recvBuffer, 50, 0);
-        if (recvBuffer[x - 1] != '\0')
-        {
-            recvBuffer[x] = '\0';
-            strcat(*buff, recvBuffer);
-        }
-        else
-        {
-
-            strcat(*buff, recvBuffer);
+        if (x == 0)
             break;
-        }
-        *buff = realloc(*buff, strlen(*buff) + 51);
+        fwrite(recvBuffer, 1, x, fp);
+        length += x;
+        if (length >= contentLength)
+            break;
     }
 }
 // helper function to reset the buffer
@@ -202,33 +236,35 @@ void resetBuffer(char *buff, int size)
         buff[i] = '\0';
     }
 }
-void send_response(int client_sockfd, struct Response *response)
+void send_response_header(int client_sockfd, struct Response *response)
 {
     char *responseString = malloc(strlen(response->HTTP_version) + 1);
-    strncat(responseString, response->HTTP_version, strlen(response->HTTP_version));
-    strncat(responseString, " ", 1);
+    strcpy(responseString, response->HTTP_version);
+    strcat(responseString, " ");
     char *status_code = malloc(4 * sizeof(char));
     sprintf(status_code, "%d", response->status_code);
     malloc(strlen(status_code) + 1);
-    strncat(responseString, status_code, strlen(status_code));
-    strncat(responseString, " ", 1);
+    strcat(responseString, status_code);
+    strcat(responseString, " ");
     malloc(strlen(response->status_message) + 2);
-    strncat(responseString, response->status_message, strlen(response->status_message));
-    strncat(responseString, "\r\n", 2);
+    strcat(responseString, response->status_message);
+    strcat(responseString, "\r\n");
     struct Header *h;
     for (h = response->headers; h; h = h->next)
     {
         malloc(strlen(h->name) + 2);
-        strncat(responseString, h->name, strlen(h->name));
-        strncat(responseString, ": ", 2);
+        strcat(responseString, h->name);
+        strcat(responseString, ": ");
         malloc(strlen(h->values) + 2);
-        strncat(responseString, h->values, strlen(h->values));
-        strncat(responseString, "\r\n", 2);
+        strcat(responseString, h->values);
+        strcat(responseString, "\r\n");
     }
-    strncat(responseString, "\r\n", 2);
+    strcat(responseString, "\r\n");
+    printf("WHATS IN RESPONSE STRING:\n");
+    printf("%s\n", responseString);
     send(client_sockfd, responseString, strlen(responseString), 0); // send the header and HTTP version
 }
-struct Header *set_header_and_HTTPversion(int status_code, struct Response *response)
+void set_header_and_HTTPversion(int status_code, struct Response *response)
 {
     char *status_message = malloc(10 * sizeof(char));
     if (status_code == 200)
@@ -243,33 +279,78 @@ struct Header *set_header_and_HTTPversion(int status_code, struct Response *resp
     response->status_code = status_code;
     response->status_message = status_message;
     struct Header *header = malloc(sizeof(struct Header));
-    header->name = "Expires";
-    header->values = "Thu, 01 Dec 1994 16:00:00 GMT";
-    header->name = "Cache-Control";
-    header->values = "no-store always";
-    header->next = NULL;
     response->headers = header;
-    return header;
+    header->name = strdup("Expires");
+    header->values = strdup("Thu, 01 Dec 1994 16:00:00 GMT");
+    header->next = malloc(sizeof(struct Header));
+    header = header->next;
+    header->name = strdup("Cache-Control");
+    header->values = strdup("no-store always");
+    header->next = malloc(sizeof(struct Header));
+    header = header->next;
+    header->name = strdup("Content-language");
+    header->values = strdup("en-us");
+    header->next = NULL;
+}
+void send_response_file(int new_socket, char *url)
+{
+    //some bug it is not sending the whole file
+
+    // send the file
+    FILE *fp = fopen(url, "r");
+    char *buffer = malloc(1024 * sizeof(char));
+    int n;
+    int totalBytes = 0;
+    while (1)
+    {
+        printf("%s\n", buffer);
+        if ((n = fread(buffer, 1, 1024, fp)) <= 0)
+        {
+            break;
+        }
+        send(new_socket, buffer, n, 0);
+        totalBytes += n;
+    }
+    printf("\nTotal bytes sent: %d\n", totalBytes);
+    fclose(fp);
+    printf("File sent successfully!\n");
+}
+int find_content_length_value(struct Request *request)
+{
+    struct Header *h;
+    for (h = request->headers; h; h = h->next)
+    {
+        char *len = strdup(h->values); // HTTP RFC says that header names are case-insensitive
+        for (int i = 0; len[i]; i++)
+        {
+            len[i] = tolower(len[i]);
+        }
+        if (strcmp(len, "content-length") == 0)
+        {
+            return atoi(h->values);
+        }
+    }
+    return -1;
 }
 int main()
 {
-    char *raw_request = "PUT / HTTP/1.1\r\n"
-                        "Host: localhost:8080\r\n"
-                        "Connection: keep-alive\r\n"
-                        "Upgrade-Insecure-Requests: 1\r\n"
-                        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
-                        "Accept: application/pdf\r\n"
-                        "Date: Mon, 26 Mar 2018 20:54:02 GMT\r\n"
-                        "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/604.5.6 (KHTML, like Gecko) Version/11.0.3 Safari/604.5.6\r\n"
-                        "Accept-Language: en-us,en;q=0.8\r\n"
-                        "DNT: 1\r\n"
-                        "Accept-Encoding: gzip, deflate\r\n"
-                        "\r\n\r\n"
-                        "Usually GET requests don\'t have a body\r\n"
-                        "But I don\'t care in this case :)";
+    // char *raw_request = "GET /home/rsh-raj/Documents/KGP/sem6/networks/Networks-Lab-Spring-2023/what.txt HTTP/1.1\r\n"
+    //                     "Host: localhost:8080\r\n"
+    //                     "Connection: keep-alive\r\n"
+    //                     "Upgrade-Insecure-Requests: 1\r\n"
+    //                     "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+    //                     "Accept: application/pdf\r\n"
+    //                     "Date: Mon, 26 Mar 2018 20:54:02 GMT\r\n"
+    //                     "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/604.5.6 (KHTML, like Gecko) Version/11.0.3 Safari/604.5.6\r\n"
+    //                     "Accept-Language: en-us,en;q=0.8\r\n"
+    //                     "DNT: 1\r\n"
+    //                     "Accept-Encoding: gzip, deflate\r\n"
+    //                     "\r\n\r\n"
+    //                     "Usually GET requests don\'t have a body\r\n"
+    //                     "But I don\'t care in this case :)";
 
-    struct Request *req = parse(raw_request);
-    print_request(req);
+    // struct Request *req = parse(raw_request);
+    // print_request(req);
 
     // normal tcp server routine
     int server_fd, new_socket;
@@ -282,6 +363,7 @@ int main()
     server_address.sin_family = AF_INET;
     inet_aton("127.0.0.1", &server_address.sin_addr);
     server_address.sin_port = htons(8080);
+    printf("Server address: %s Port: %d\n", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
     if (bind(server_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {
         perror("bind failed");
@@ -295,27 +377,35 @@ int main()
     int addrlen;
     while (1)
     {
+        printf("Waiting for new connection...\n");
         if ((new_socket = accept(server_fd, (struct sockaddr *)&client_address, (socklen_t *)&addrlen)) < 0)
         {
             perror("accept");
             exit(EXIT_FAILURE);
         }
+        printf("New connection accepted from %s:%d \n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
         if (!fork())
         {
             // handle the client here
             close(server_fd);
             char *buff;
             // receiveWrapper(new_socket, &buff);
+            buff = receiveHeader(new_socket);
+            // printf("Received request:\n%s\n", buff);
+            // printf("WTF:::000\n");
+            // printf("Received request:\n%s\n", buff);
             struct Request *req = parse(buff);
+            // printf("wtf:::111\n");
+            printf("Received request:\n");
             print_request(req);
             struct Response *response = malloc(sizeof(struct Response));
-
             if (req->request_method == 2) // Unsupported method
             {
                 set_header_and_HTTPversion(400, response);
-                send_response(new_socket, response);
+                send_response_header(new_socket, response);
+                // exit(EXIT_SUCCESS);
             }
-            else if (req->request_method == 0)
+            else
             {
                 // handle GET request
                 // check if the file exists
@@ -323,66 +413,108 @@ int main()
                 {
                     // file doesn't exist or can't be read
                     set_header_and_HTTPversion(404, response);
-                    send_response(new_socket, response);
+                    send_response_header(new_socket, response);
+                    printf("File doesn't exist or can't be read");
+                    exit(EXIT_SUCCESS);
                 }
-                else
-                {
-                    // file exists and can be read
-                    // check if the file is a directory
-                    struct stat path_stat;
 
-                    if (stat(req->url, &path_stat) && S_ISDIR(path_stat.st_mode))
+                // file exists and can be read
+                // check if the file is a directory
+                struct stat path_stat;
+                if (!stat(req->url, &path_stat) && S_ISDIR(path_stat.st_mode))
+                {
+                    // file is a directory then return 403
+                    set_header_and_HTTPversion(403, response);
+                    send_response_header(new_socket, response);
+                    exit(EXIT_SUCCESS);
+                }
+                if ((req->request_method == 0))
+                {
+
+                    // file is not a directory
+                    set_header_and_HTTPversion(200, response);
+                    struct Header *h = response->headers;
+                    struct stat st;
+                    stat(req->url, &st);
+                    char *content_length = malloc(100 * sizeof(char));
+                    sprintf(content_length, "%ld", st.st_size);
+                    h->next = malloc(sizeof(struct Header));
+                    h = h->next;
+                    h->name = strdup("Content-Length");
+                    h->values = strdup(content_length);
+                    h->next = malloc(sizeof(struct Header));
+                    h = h->next;
+                    h->name = strdup("Last-Modified");
+                    // h->values = strdup(ctime(&st.st_mtime));
+                    h->values = strdup("Mon, 26 Mar 2018 20:54:02 GMT");
+                    h->next = NULL;
+                    // check if the file is a pdf
+                    char *extension = strrchr(req->url, '.');
+                    printf("%s\n", extension);
+                    h->next = malloc(sizeof(struct Header));
+                    if (h->next == NULL)
                     {
-                        // file is a directory then return 403
-                        set_header_and_HTTPversion(403, response);
-                        send_response(new_socket, response);
+                        printf("malloc failed\n");
+                    }
+                    h = h->next;
+                    h->name = strdup("Content-Type");
+
+                    if (strcmp(extension, ".pdf") == 0)
+                    {
+                        // file is a pdf
+                        h->values = strdup("application/pdf");
+                    }
+                    else if (strcmp(extension, ".html") == 0)
+                    {
+                        // file is a html
+                        h->values = strdup("text/html");
+                    }
+                    else if (strcmp(extension, ".jpg") == 0)
+                    {
+                        // file is a txt
+                        h->values = strdup("image/jpeg");
                     }
                     else
                     {
-                        // file is not a directory
-                        // check if the file is a pdf
-                        char *extension = strrchr(req->url, '.');
-                        if (strcmp(extension, ".pdf") == 0)
-                        {
-                            // file is a pdf
-                            struct Header *h = set_header_and_HTTPversion(200, response);
-                            h->next = malloc(sizeof(struct Header));
-                            h->next->name = "Content-Type";
-                            h->next->values = "application/pdf";
-                            h->next->next = NULL;
-                            send_response(new_socket, response);
-                            // send the file
-                            FILE *fp = fopen(req->url, "r");
-                            char *buffer = malloc(1024 * sizeof(char));
-                            int n;
-                            while ((n = fread(buffer, 1, 1024, fp)) > 0)
-                            {
-                                send(new_socket, buffer, n, 0);
-                            }
-                            fclose(fp);
-                        }
-                        else
-                        {
-                            // file is not a pdf
-                            set_header_and_HTTPversion(403, response);
-                            send_response(new_socket, response);
-                        }
+                        // any other file
+                        h->values = strdup("text/*");
                     }
+                    h->next = NULL;
+                    send_response_header(new_socket, response);
+                    send_response_file(new_socket, req->url);
+                }
+                else
+                {
+                    // handle PUT request
+                    char *buff;
+                    char *startingMessage = "lol";
+                    // printf("%s\n", startingMessage);
+                    Request *req = parse(buff);
+                    print_request(req);
+                    int content_length = find_content_length_value(req);
+                    printf("content length: %d\n", content_length);
+                    if (content_length == -1)
+                    {
+                        // content length not found
+                        set_header_and_HTTPversion(400, response);
+                        send_response_header(new_socket, response);
+                        exit(EXIT_SUCCESS);
+                    }
+                    receive_and_write_to_file(new_socket, req->url, content_length, startingMessage);
+                    // content length found
+                    // write to the file
                 }
             }
-            else
-            {
-                // handle PUT request
-            }
-
-            // closing the connection with client and exiting the process
-            close(new_socket);
+            printf("Connection closed with client\n");
             exit(EXIT_SUCCESS);
         }
-
+        // closing the connection with client and exiting the process
         close(new_socket);
+        // exit(EXIT_SUCCESS);
     }
 
-    free_request(req);
+    close(new_socket);
+
+    // free_request(req);
     return 0;
 }
