@@ -207,26 +207,42 @@ char *receiveHeader(int sockfd)
 }
 void receive_and_write_to_file(int sockfd, char *url, int contentLength, char *startingMsg)
 {
+    printf("Writing to file: %s\n", url);
+    printf("Content-Length: %d\n", contentLength);
+    printf("Starting message: %s\n", startingMsg);
     FILE *fp = fopen(url, "w");
     if (fp == NULL)
     {
         printf("Error opening file!\n");
         exit(EXIT_FAILURE);
     }
-    fwrite(startingMsg, 1, strlen(startingMsg), fp);
-    char *recvBuffer = (char *)malloc(51 * sizeof(char));
+    if (strcmp(startingMsg, "") != 0)
+        fwrite(startingMsg, 1, strlen(startingMsg), fp);
+    printf("Starting message: %s\n", startingMsg);
+
+    char *recvBuffer = (char *)malloc(1025 * sizeof(char));
     int length = 0;
     while (1)
     {
-        resetBuffer(recvBuffer, 50);
-        int x = recv(sockfd, recvBuffer, 50, 0);
+        resetBuffer(recvBuffer, 1025);
+
+        int x = recv(sockfd, recvBuffer, 1024, 0);
+        printf("x: %d\n", x);
+        printf("%s\n", recvBuffer);
         if (x == 0)
+        {
+            printf("Connection closed!\n");
             break;
+        }
+        // printf("writing to file: %s\n", recvBuffer);
         fwrite(recvBuffer, 1, x, fp);
         length += x;
         if (length >= contentLength)
             break;
     }
+    printf("file downloaded successfully! Size: %d bytes\n", length + strlen(startingMsg));
+    fclose(fp);
+    free(recvBuffer);
 }
 // helper function to reset the buffer
 void resetBuffer(char *buff, int size)
@@ -292,9 +308,31 @@ void set_header_and_HTTPversion(int status_code, struct Response *response)
     header->values = strdup("en-us");
     header->next = NULL;
 }
+void send_put_response(int client_sockfd, int status_code)
+{
+    char *put_response = malloc(100 * sizeof(char));
+    if (status_code == 200)
+    {
+        strcpy(put_response, "HTTP/1.1 200 OK\r\n");
+    }
+    else if (status_code == 400)
+    {
+        strcpy(put_response, "HTTP/1.1 400 Bad Request\r\n");
+    }
+    else if (status_code == 403)
+    {
+        strcpy(put_response, "HTTP/1.1 403 Forbidden\r\n");
+    }
+    else if (status_code == 404)
+    {
+        strcpy(put_response, "HTTP/1.1 404 Not Found\r\n");
+    }
+    strcat(put_response, "\r\n");
+    send(client_sockfd, put_response, strlen(put_response), 0);
+}
 void send_response_file(int new_socket, char *url)
 {
-    //some bug it is not sending the whole file
+    // some bug it is not sending the whole file
 
     // send the file
     FILE *fp = fopen(url, "r");
@@ -320,13 +358,15 @@ int find_content_length_value(struct Request *request)
     struct Header *h;
     for (h = request->headers; h; h = h->next)
     {
-        char *len = strdup(h->values); // HTTP RFC says that header names are case-insensitive
+        char *len = strdup(h->name); // HTTP RFC says that header names are case-insensitive
         for (int i = 0; len[i]; i++)
         {
             len[i] = tolower(len[i]);
         }
+        // printf("len: %s\n", len);
         if (strcmp(len, "content-length") == 0)
         {
+            // printf("content-length: %s\n", h->values);
             return atoi(h->values);
         }
     }
@@ -334,23 +374,6 @@ int find_content_length_value(struct Request *request)
 }
 int main()
 {
-    // char *raw_request = "GET /home/rsh-raj/Documents/KGP/sem6/networks/Networks-Lab-Spring-2023/what.txt HTTP/1.1\r\n"
-    //                     "Host: localhost:8080\r\n"
-    //                     "Connection: keep-alive\r\n"
-    //                     "Upgrade-Insecure-Requests: 1\r\n"
-    //                     "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
-    //                     "Accept: application/pdf\r\n"
-    //                     "Date: Mon, 26 Mar 2018 20:54:02 GMT\r\n"
-    //                     "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/604.5.6 (KHTML, like Gecko) Version/11.0.3 Safari/604.5.6\r\n"
-    //                     "Accept-Language: en-us,en;q=0.8\r\n"
-    //                     "DNT: 1\r\n"
-    //                     "Accept-Encoding: gzip, deflate\r\n"
-    //                     "\r\n\r\n"
-    //                     "Usually GET requests don\'t have a body\r\n"
-    //                     "But I don\'t care in this case :)";
-
-    // struct Request *req = parse(raw_request);
-    // print_request(req);
 
     // normal tcp server routine
     int server_fd, new_socket;
@@ -362,7 +385,7 @@ int main()
     struct sockaddr_in server_address, client_address;
     server_address.sin_family = AF_INET;
     inet_aton("127.0.0.1", &server_address.sin_addr);
-    server_address.sin_port = htons(8080);
+    server_address.sin_port = htons(8081);
     printf("Server address: %s Port: %d\n", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
     if (bind(server_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {
@@ -407,31 +430,35 @@ int main()
             }
             else
             {
-                // handle GET request
-                // check if the file exists
-                if (access(req->url, F_OK | R_OK) < 0)
-                {
-                    // file doesn't exist or can't be read
-                    set_header_and_HTTPversion(404, response);
-                    send_response_header(new_socket, response);
-                    printf("File doesn't exist or can't be read");
-                    exit(EXIT_SUCCESS);
-                }
 
-                // file exists and can be read
                 // check if the file is a directory
                 struct stat path_stat;
                 if (!stat(req->url, &path_stat) && S_ISDIR(path_stat.st_mode))
                 {
                     // file is a directory then return 403
+                    if (req->request_method == 1)
+                    {
+                        send_put_response(new_socket, 403);
+                        exit(EXIT_SUCCESS);
+                    }
                     set_header_and_HTTPversion(403, response);
                     send_response_header(new_socket, response);
                     exit(EXIT_SUCCESS);
                 }
                 if ((req->request_method == 0))
                 {
+                    // handle GET request
+                    // check if the file exists
+                    if (access(req->url, F_OK | R_OK) < 0)
+                    {
+                        // file doesn't exist or can't be read
+                        set_header_and_HTTPversion(404, response);
+                        send_response_header(new_socket, response);
+                        printf("File doesn't exist or can't be read");
+                        exit(EXIT_SUCCESS);
+                    }
 
-                    // file is not a directory
+                    // file exists and can be read
                     set_header_and_HTTPversion(200, response);
                     struct Header *h = response->headers;
                     struct stat st;
@@ -486,35 +513,23 @@ int main()
                 else
                 {
                     // handle PUT request
-                    char *buff;
-                    char *startingMessage = "lol";
-                    // printf("%s\n", startingMessage);
-                    Request *req = parse(buff);
-                    print_request(req);
-                    int content_length = find_content_length_value(req);
+                    int content_length = find_content_length_value(req) - strlen(req->enttity_body);
                     printf("content length: %d\n", content_length);
                     if (content_length == -1)
                     {
                         // content length not found
-                        set_header_and_HTTPversion(400, response);
-                        send_response_header(new_socket, response);
+                        send_put_response(new_socket, 400);
                         exit(EXIT_SUCCESS);
                     }
-                    receive_and_write_to_file(new_socket, req->url, content_length, startingMessage);
-                    // content length found
-                    // write to the file
+                    receive_and_write_to_file(new_socket, req->url, content_length, req->enttity_body);
+                    send_put_response(new_socket, 200);
                 }
             }
             printf("Connection closed with client\n");
             exit(EXIT_SUCCESS);
         }
-        // closing the connection with client and exiting the process
         close(new_socket);
-        // exit(EXIT_SUCCESS);
     }
-
-    close(new_socket);
-
     // free_request(req);
     return 0;
 }
