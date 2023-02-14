@@ -17,7 +17,6 @@ typedef enum Method
     PUT,
     UNSUPPORTED
 } Method;
-
 typedef struct Header
 {
     char *name;
@@ -191,6 +190,7 @@ void print_response(struct Response *request)
 // helper function to receive the data in chunks(1024 bytes)
 char *receiveHeader(int sockfd)
 {
+    char *startingEntityBody = NULL;
     char *recvBuffer = (char *)malloc(1025 * sizeof(char));
     char *buff = (char *)malloc(1025 * sizeof(char));
     strcpy(buff, "\0");
@@ -207,18 +207,15 @@ char *receiveHeader(int sockfd)
         char *endOfHeader = strstr(recvBuffer, "\r\n\r\n");
         if (endOfHeader)
         {
+            startingEntityBody = strdup(recvBuffer);
             break;
         }
-        char *tmp = realloc(buff, strlen(buff) + 1025);
-        if (tmp == NULL)
-        {
         char *tmp = realloc(buff, strlen(buff) + 1025);
         if (tmp == NULL)
         {
             perror("realloc failed:214\n");
             return NULL;
         }
-        buff = tmp;
         buff = tmp;
     }
     // printf("Header received succesfully!\n");
@@ -382,15 +379,13 @@ char **tokenize_command(char *cmd)
 
 void getIPandPort(char **tokens, char *IP, int *portnum)
 {
-    // GET http://127.0.0.1/home/adityach-01/logo.png:8080
-    // PUT http://127.0.0.1/home/adityach-01:8080 MyHTTP.c
-    // GET http://127.0.0.1/home/adityach-01/MyHTTP.c:8080
-    // PUT http://127.0.0.1/home:8080 MyBrowser.c
+    // GET http://127.0.0.1/home/rsh-raj/test.mkv:3000
     int flag = 0;
     int index = 0;
     int cnt = 0;
     char port[10];
     *portnum = 80; // default port number
+
     for (int i = 0; tokens[1][i] != '\0'; i++)
     {
 
@@ -403,8 +398,6 @@ void getIPandPort(char **tokens, char *IP, int *portnum)
                 IP[index++] = tokens[1][i++];
             }
             IP[index++] = '\0';
-            flag = 0;
-            continue;
         }
 
         else if (tokens[1][i] == '/')
@@ -429,32 +422,33 @@ void getIPandPort(char **tokens, char *IP, int *portnum)
     }
 }
 
-char * modifydate(int changeday){
+char *modifydate(int changeday)
+{
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     tm.tm_mday += changeday;
     mktime(&tm);
     char buf[50];
-    strcpy(buf,asctime(&tm));
+    strcpy(buf, asctime(&tm));
 
-    buf[strlen(buf)-1] = '\0';
+    buf[strlen(buf) - 1] = '\0';
     // printf("%s\n", buf);
 
     char **temp = tokenize_command(buf);
 
     // Now HTTP formatting
-    char *final = (char *)malloc(100*sizeof(char));
+    char *final = (char *)malloc(100 * sizeof(char));
     strcpy(final, temp[0]);
-    strcat(final,", ");
-    strcat(final,temp[2]);
-    strcat(final," ");
-    strcat(final,temp[1]);
-    strcat(final," ");
-    strcat(final,temp[4]);
-    strcat(final," ");
-    strcat(final,temp[3]);
-    strcat(final," ");
-    strcat(final,"IST");
+    strcat(final, ", ");
+    strcat(final, temp[2]);
+    strcat(final, " ");
+    strcat(final, temp[1]);
+    strcat(final, " ");
+    strcat(final, temp[4]);
+    strcat(final, " ");
+    strcat(final, temp[3]);
+    strcat(final, " ");
+    strcat(final, "IST");
 
     // printf("Final date : %s\n", final);
     return final;
@@ -491,8 +485,7 @@ void send_request_header(int sockfd, char *url, char *host)
     else
         strcat(request, "Accept: text/*");
     strcat(request, "Accept-Language: en-US,en;q=0.5\r\n");
-
-    // custom function to write date with offset in HTTP format
+    // strcat(request, "If-Modified-Since: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     char buf[200];
     strcpy(buf, "If-Modified-Since: ");
     strcat(buf, modifydate(-2));
@@ -519,7 +512,8 @@ void send_put_request(int sockfd, char *finalUrl, char *IPaddress, char *content
     strcat(request, "\r\n");
     strcat(request, "Connection: close\r\n");
     strcat(request, "Date: ");
-    strcat(request, "Thu, 01 Jan 1970 00:00:00 GMT\r\n");
+    strcat(request, modifydate(0));
+    strcat(request, "\r\n");
     strcat(request, "Content-Length: ");
     strcat(request, contentlength);
     strcat(request, "\r\n");
@@ -540,6 +534,7 @@ void send_put_request(int sockfd, char *finalUrl, char *IPaddress, char *content
     // printf("Request sent to server is %s\n and length is %ld bytes \n", request, strlen(request));
     send(sockfd, request, strlen(request), 0); // get request sent to server
 }
+
 
 int main()
 {
@@ -643,9 +638,12 @@ int main()
                 if (pid == 0)
                 {
                     // strcat(file_name, " &");
-                    execlp("xdg-open", "xdg-open", file_name,"&", NULL);
+                    char *args[] = {"xdg-open", file_name, NULL};
+                    // char *args2[]={"ls","-l",NULL};
+                    execvp(args[0], args);
                     exit(EXIT_SUCCESS);
                 }
+                else continue;
             }
             else if (responseStruct->status_code == 404)
             {
@@ -667,24 +665,14 @@ int main()
                 printf("Unknown error\n");
                 continue;
             }
-            receive_and_write_to_file(sockfd, file_name, file_size - strlen(responseStruct->entity_body), responseStruct->entity_body);
-            //fork a children and display the file
-            int pid = fork();
-            if (pid == 0)
-            {
-                // strcat(file_name, " &");
-                char *args[] = {"xdg-open", file_name,NULL};
-                // char *args2[]={"ls","-l",NULL};
-                execvp(args[0], args);
-                exit(EXIT_SUCCESS);
-            }
-            else continue;
+
+            
         }
         else if (!strcmp(tokens[0], "PUT"))
         {
             // send the put request
-            if (finalUrl[strlen(finalUrl) - 1] != '/') strcat(finalUrl, "/"); // append a / to the url
-            strcat(finalUrl, tokens[2]);     // append the file name to the url
+            strcat(finalUrl, "/");       // append a / to the url
+            strcat(finalUrl, tokens[2]); // append the file name to the url
             struct stat st;
             if (stat(tokens[2], &st) < 0)
             {
@@ -731,8 +719,5 @@ int main()
                 continue;
             }
         }
-
-        free(tokens);
     }
 }
-
