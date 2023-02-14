@@ -182,8 +182,8 @@ void print_response(struct Response *request)
             printf("%32s: %s\n", h->name, h->values);
         }
 
-        puts("message-body:");
-        puts(request->entity_body);
+        // puts("message-body:");
+        // puts(request->entity_body);
     }
 }
 // helper function to receive the data in chunks(1024 bytes)
@@ -488,6 +488,7 @@ void send_put_request(int sockfd, char *finalUrl, char *IPaddress, char *content
         strcat(request, "Content-type: application/pdf");
     else
         strcat(request, "Content-type: text/*");
+    strcat(request,"\r\n");
     strcat(request, "Content-Language: en-US\r\n");
     strcat(request, "\r\n");
     printf("Request sent to server is %s\n and length is %ld bytes \n", request, strlen(request));

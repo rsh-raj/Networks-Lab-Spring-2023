@@ -169,8 +169,8 @@ void print_request(struct Request *request)
             printf("%32s: %s\n", h->name, h->values);
         }
 
-        puts("message-body:");
-        puts(request->enttity_body);
+        // puts("message-body:");
+        // puts(request->enttity_body);
     }
 }
 // helper function to receive the data in chunks(50 bytes)
@@ -211,7 +211,8 @@ void receive_and_write_to_file(int sockfd, char *url, int contentLength, char *s
     if (fp == NULL)
     {
         printf("Error opening file!\n");
-        exit(EXIT_FAILURE);
+        send_put_response(sockfd, 403);
+        return;
     }
     if (strcmp(startingMsg, "") != 0)
         fwrite(startingMsg, 1, strlen(startingMsg), fp);
@@ -386,6 +387,9 @@ int main()
 {
 
     // normal tcp server routine
+    // creatte an access log file
+    FILE *access_log = fopen("access_log.txt", "a");
+
     int server_fd, new_socket;
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
@@ -417,18 +421,19 @@ int main()
             exit(EXIT_FAILURE);
         }
         printf("New connection accepted from %s:%d \n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+        char *record = malloc(1000 * sizeof(char));
+        // current time and date
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
         if (!fork())
         {
             // handle the client here
             close(server_fd);
             char *buff;
-            // receiveWrapper(new_socket, &buff);
             buff = receiveHeader(new_socket);
-            // printf("Received request:\n%s\n", buff);
-            // printf("WTF:::000\n");
-            // printf("Received request:\n%s\n", buff);
             struct Request *req = parse(buff);
-            // printf("wtf:::111\n");
+            sprintf(record, "%d-%d-%d : %d:%d:%d : %s : %d : %s : %s\n", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec, inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port),req->request_method == 0 ? "GET" : "PUT", req->url);
+            fwrite(record, 1, strlen(record), access_log);
             printf("Received request:\n");
             print_request(req);
             struct Response *response = malloc(sizeof(struct Response));
@@ -478,8 +483,10 @@ int main()
                     int is_modified = 0;
                     // if (!if_modified_since && ); compare the last modified date with the if_modified_since date both in GMT and then set is_modified to 0 if the file is not modified
                     char *content_length = malloc(100 * sizeof(char));
-                    if(is_modified)sprintf(content_length, "%ld", st.st_size);
-                    else content_length = "0";
+                    if (is_modified)
+                        sprintf(content_length, "%ld", st.st_size);
+                    else
+                        content_length = "0";
                     h->next = malloc(sizeof(struct Header));
                     h = h->next;
                     h->name = strdup("Content-Length");
@@ -523,7 +530,8 @@ int main()
                     }
                     h->next = NULL;
                     send_response_header(new_socket, response);
-                    if(is_modified) send_response_file(new_socket, req->url);
+                    if (is_modified)
+                        send_response_file(new_socket, req->url);
                 }
                 else
                 {
@@ -545,6 +553,7 @@ int main()
         }
         close(new_socket);
     }
+    fclose(access_log);
     // free_request(req);
     return 0;
 }
