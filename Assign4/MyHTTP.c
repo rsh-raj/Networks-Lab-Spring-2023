@@ -42,35 +42,7 @@ typedef struct Response
     struct Header *headers;
     char *entity_body;
 } Response;
-void free_header_request(struct Header *header)
-{
-    if (header)
-    {
-        free_header_request(header->next);
-        if (header->name)
-            free(header->name);
-        if (header->values)
-            free(header->values);
-        free(header);
-    }
-}
 
-
-void free_request(struct Request *request)
-{
-    if (request)
-    {
-        if (request->headers)
-            free_header_request(request->headers);
-        if (request->url)
-            free(request->url);
-        if (request->HTTP_version)
-            free(request->HTTP_version);
-        if (request->enttity_body)
-            free(request->enttity_body);
-        free(request);
-    }
-}
 void free_response(struct Response *request)
 {
     if (request)
