@@ -21,7 +21,7 @@ char **tokenize_command(char *cmd)
 
     char **cmdarr;
     cmdarr = (char **)malloc(sizeof(char *));
-    cmdarr[index] = (char *)malloc(100 * sizeof(char));
+    cmdarr[index] = (char *)malloc(1000 * sizeof(char));
 
     int cnt = 0;
     int flag = 0;
@@ -62,7 +62,7 @@ char **tokenize_command(char *cmd)
 
         // realloc cmdarr
         cmdarr = (char **)realloc(cmdarr, (index + 1) * sizeof(char *));
-        cmdarr[index] = (char *)malloc(100 * sizeof(char));
+        cmdarr[index] = (char *)malloc(1000 * sizeof(char));
 
         if (cmd[i] == '\0')  break;
     }
