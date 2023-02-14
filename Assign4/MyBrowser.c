@@ -380,7 +380,6 @@ char **tokenize_command(char *cmd)
 
 void getIPandPort(char **tokens, char *IP, int *portnum)
 {
-    printf("this motherfucker: \n");
     // GET http://127.0.0.1/home/rsh-raj/test.mkv:3000
     int flag = 0;
     int index = 0;
@@ -390,7 +389,6 @@ void getIPandPort(char **tokens, char *IP, int *portnum)
 
     for (int i = 0; tokens[1][i] != '\0'; i++)
     {
-        printf("this motherfucker2: \n");
 
         if (tokens[1][i] == '/' && flag == 1)
         {
