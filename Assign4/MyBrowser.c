@@ -17,6 +17,7 @@ typedef enum Method
     PUT,
     UNSUPPORTED
 } Method;
+
 typedef struct Header
 {
     char *name;
@@ -211,9 +212,13 @@ char *receiveHeader(int sockfd)
         char *tmp = realloc(buff, strlen(buff) + 1025);
         if (tmp == NULL)
         {
+        char *tmp = realloc(buff, strlen(buff) + 1025);
+        if (tmp == NULL)
+        {
             perror("realloc failed:214\n");
             return NULL;
         }
+        buff = tmp;
         buff = tmp;
     }
     // printf("Header received succesfully!\n");
@@ -307,7 +312,6 @@ int find_content_length_value(struct Response *response)
 }
 char **tokenize_command(char *cmd)
 {
-    // what the fuck is this malloc errror on:
     // GET http://127.0.0.1/home/rsh-raj/Documents/KGP/sem6/networks/Networks-Lab-Spring-2023/Assign1/Assgn-1.pdf:3000
     int index = 0;
     char temp[5000];
@@ -378,13 +382,15 @@ char **tokenize_command(char *cmd)
 
 void getIPandPort(char **tokens, char *IP, int *portnum)
 {
-    // GET http://127.0.0.1/home/rsh-raj/test.mkv:3000
+    // GET http://127.0.0.1/home/adityach-01/logo.png:8080
+    // PUT http://127.0.0.1/home/adityach-01:8080 MyHTTP.c
+    // GET http://127.0.0.1/home/adityach-01/MyHTTP.c:8080
+    // PUT http://127.0.0.1/home:8080 MyBrowser.c
     int flag = 0;
     int index = 0;
     int cnt = 0;
     char port[10];
     *portnum = 80; // default port number
-
     for (int i = 0; tokens[1][i] != '\0'; i++)
     {
 
@@ -397,6 +403,8 @@ void getIPandPort(char **tokens, char *IP, int *portnum)
                 IP[index++] = tokens[1][i++];
             }
             IP[index++] = '\0';
+            flag = 0;
+            continue;
         }
 
         else if (tokens[1][i] == '/')
@@ -413,11 +421,43 @@ void getIPandPort(char **tokens, char *IP, int *portnum)
             }
             port[cnt++] = '\0';
             *portnum = atoi(port);
+            break;
         }
 
         else
             flag = 0;
     }
+}
+
+char * modifydate(int changeday){
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    tm.tm_mday += changeday;
+    mktime(&tm);
+    char buf[50];
+    strcpy(buf,asctime(&tm));
+
+    buf[strlen(buf)-1] = '\0';
+    // printf("%s\n", buf);
+
+    char **temp = tokenize_command(buf);
+
+    // Now HTTP formatting
+    char *final = (char *)malloc(100*sizeof(char));
+    strcpy(final, temp[0]);
+    strcat(final,", ");
+    strcat(final,temp[2]);
+    strcat(final," ");
+    strcat(final,temp[1]);
+    strcat(final," ");
+    strcat(final,temp[4]);
+    strcat(final," ");
+    strcat(final,temp[3]);
+    strcat(final," ");
+    strcat(final,"IST");
+
+    // printf("Final date : %s\n", final);
+    return final;
 }
 
 void send_request_header(int sockfd, char *url, char *host)
@@ -451,7 +491,14 @@ void send_request_header(int sockfd, char *url, char *host)
     else
         strcat(request, "Accept: text/*");
     strcat(request, "Accept-Language: en-US,en;q=0.5\r\n");
-    strcat(request, "If-Modified-Since: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
+
+    // custom function to write date with offset in HTTP format
+    char buf[200];
+    strcpy(buf, "If-Modified-Since: ");
+    strcat(buf, modifydate(-2));
+    strcat(buf, "\r\n");
+
+    strcat(request, buf);
     strcat(request, "\r\n");
     // printf("Request sent to server is %s and length is %ld bytes \n", request, strlen(request));
     send(sockfd, request, strlen(request), 0); // get request sent to server
@@ -620,14 +667,24 @@ int main()
                 printf("Unknown error\n");
                 continue;
             }
-
-            
+            receive_and_write_to_file(sockfd, file_name, file_size - strlen(responseStruct->entity_body), responseStruct->entity_body);
+            //fork a children and display the file
+            int pid = fork();
+            if (pid == 0)
+            {
+                // strcat(file_name, " &");
+                char *args[] = {"xdg-open", file_name,NULL};
+                // char *args2[]={"ls","-l",NULL};
+                execvp(args[0], args);
+                exit(EXIT_SUCCESS);
+            }
+            else continue;
         }
         else if (!strcmp(tokens[0], "PUT"))
         {
             // send the put request
-            strcat(finalUrl, "/");       // append a / to the url
-            strcat(finalUrl, tokens[2]); // append the file name to the url
+            if (finalUrl[strlen(finalUrl) - 1] != '/') strcat(finalUrl, "/"); // append a / to the url
+            strcat(finalUrl, tokens[2]);     // append the file name to the url
             struct stat st;
             if (stat(tokens[2], &st) < 0)
             {
@@ -674,5 +731,8 @@ int main()
                 continue;
             }
         }
+
+        free(tokens);
     }
 }
+

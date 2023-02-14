@@ -17,6 +17,8 @@ typedef enum Method
     PUT,
     UNSUPPORTED
 } Method;
+
+
 typedef struct Header
 {
     char *name;
@@ -42,6 +44,23 @@ typedef struct Response
     struct Header *headers;
     char *entity_body;
 } Response;
+
+int getmonth(char *s){
+    if(!strcmp("Jan",s)) return 0;
+    if(!strcmp("Feb",s)) return 1;
+    if(!strcmp("Mar",s)) return 2;
+    if(!strcmp("Apr",s)) return 3;
+    if(!strcmp("May",s)) return 4;
+    if(!strcmp("Jun",s)) return 5;
+    if(!strcmp("Jul",s)) return 6;
+    if(!strcmp("Aug",s)) return 7;
+    if(!strcmp("Sep",s)) return 8;
+    if(!strcmp("Oct",s)) return 9;
+    if(!strcmp("Nov",s)) return 10;
+    if(!strcmp("Dec",s)) return 11;
+    else return -1;
+}
+
 void free_header_request(struct Header *header)
 {
     if (header)
@@ -82,6 +101,131 @@ void free_response(struct Response *request)
         free(request);
     }
 }
+
+char **tokenize_command(char *cmd)
+{
+    // GET http://127.0.0.1/home/rsh-raj/Documents/KGP/sem6/networks/Networks-Lab-Spring-2023/Assign1/Assgn-1.pdf:3000
+    int index = 0;
+    char temp[5000];
+
+    char **cmdarr;
+    cmdarr = (char **)malloc(sizeof(char *));
+    cmdarr[index] = (char *)malloc(1000 * sizeof(char));
+
+    int cnt = 0;
+    int flag = 0;
+    int space = 0;
+    for (int i = 0; cmd[i] != '\0'; i++)
+    {
+        // remove the starting spaces
+        if (flag == 0 && cmd[i] == ' ')
+            continue;
+        flag = 1;
+
+        cnt = 0;
+        if (space == 1 && cmd[i] == ' ')
+            continue;
+        else if (cmd[i] == ' ')
+        {
+            temp[cnt++] = cmd[i];
+            space = 1;
+            continue;
+        }
+
+        // index for populating the array
+        while (!(cmd[i] == ' ' && cmd[i - 1] != '\\'))
+        {
+            if (cmd[i] == '\0')
+                break;
+            if (cmd[i] == '\\')
+            {
+                i++;
+                // skipping the back slash
+                temp[cnt++] = cmd[i++];
+                continue;
+            }
+            temp[cnt++] = cmd[i++];
+            // added random
+        }
+
+        temp[cnt++] = '\0';
+        // printf("Temp is %s\n", temp);
+
+        // copy temp into the cmdarr
+        strcpy(cmdarr[index++], temp);
+
+        // realloc cmdarr
+        char **tmp = (char **)realloc(cmdarr, (index + 1) * sizeof(char *));
+        if (tmp == NULL)
+        {
+            printf("realloc failed:367\n");
+            exit(1);
+        }
+        cmdarr = tmp;
+        cmdarr[index] = (char *)malloc(1000 * sizeof(char));
+
+        if (cmd[i] == '\0')
+            break;
+    }
+
+    cmdarr[index] = NULL;
+    return cmdarr;
+}
+
+int compare_date(char *last_modified, char *if_modified_since){
+    // returns 1 if the last_modified is before the if_modified_since
+    char **date1 = tokenize_command(last_modified);
+    char **date2 = tokenize_command(if_modified_since);
+    
+    int year1 = atoi(date1[3]);
+    int year2 = atoi(date2[3]);
+    if(year1<year2) return 1;
+    if(year1>year2) return 0;
+    
+    int month1=getmonth(date1[2]);
+    int month2=getmonth(date2[2]);
+    if(month1<month2) return 1;
+    if(month1>month2) return 0;
+    
+    int day1 = atoi(date1[1]);
+    int day2 = atoi(date2[1]);
+    if(day1<day2) return 1;
+    if(day1>day2) return 0;
+    
+    return 0;
+}
+
+char * modifydate(int changeday, struct tm tm){
+    // time_t t = time(NULL);
+    // struct tm tm = *localtime(&t);
+    tm.tm_mday += changeday;
+    mktime(&tm);
+    char buf[50];
+    strcpy(buf,asctime(&tm));
+
+    buf[strlen(buf)-1] = '\0';
+    // printf("%s\n", buf);
+
+    char **temp = tokenize_command(buf);
+
+    // Now HTTP formatting
+    char *final = (char *)malloc(100*sizeof(char));
+    strcpy(final, temp[0]);
+    strcat(final,", ");
+    strcat(final,temp[2]);
+    strcat(final," ");
+    strcat(final,temp[1]);
+    strcat(final," ");
+    strcat(final,temp[4]);
+    strcat(final," ");
+    strcat(final,temp[3]);
+    strcat(final," ");
+    strcat(final,"IST");
+
+    // printf("Final date : %s\n", final);
+    return final;
+}
+
 struct Request *parse(const char *request)
 {
     if (strlen(request) < 3)
@@ -226,6 +370,7 @@ char *receiveHeader(int sockfd)
 void receive_and_write_to_file(int sockfd, char *url, int contentLength, char *startingMsg)
 {
     FILE *fp = fopen(url, "w");
+    printf("%s\n",url);
     if (fp == NULL)
     {
         printf("Error opening file!\n");
@@ -310,7 +455,11 @@ void set_header_and_HTTPversion(int status_code, struct Response *response)
     struct Header *header = malloc(sizeof(struct Header));
     response->headers = header;
     header->name = strdup("Expires");
-    header->values = strdup("Thu, 01 Dec 1994 16:00:00 GMT");
+
+    time_t t = time(NULL);
+    struct tm tmarst = *localtime(&t);
+    header->values = strdup(modifydate(3, tmarst));
+
     header->next = malloc(sizeof(struct Header));
     header = header->next;
     header->name = strdup("Cache-Control");
@@ -492,10 +641,13 @@ int main()
                     struct Header *h = response->headers;
                     struct stat st;
                     stat(req->url, &st);
+                    struct tm dt = *(gmtime(&st.st_mtime));
+                    char *last_modified = modifydate(0,dt);
 
                     char *if_modified_since = get_if_modified_since(req);
                     int is_modified = 1;
-                    // if (!if_modified_since && ); compare the last modified date with the if_modified_since date both in GMT and then set is_modified to 0 if the file is not modified
+                    if (!if_modified_since && compare_date(last_modified,if_modified_since))is_modified=0; 
+                    //compare the last modified date with the if_modified_since date both in GMT and then set is_modified to 0 if the file is not modified
                     char *content_length = malloc(100 * sizeof(char));
                     if (is_modified)
                         sprintf(content_length, "%ld", st.st_size);
@@ -508,8 +660,8 @@ int main()
                     h->next = malloc(sizeof(struct Header));
                     h = h->next;
                     h->name = strdup("Last-Modified");
-                    // h->values = strdup(ctime(&st.st_mtime)); // this is not in GMT and it is not in the correct format so we need to convert it to GMT and then to the correct format
-                    h->values = strdup("Mon, 26 Mar 2018 20:54:02 GMT");
+                    h->values = strdup(last_modified); // this is not in GMT and it is not in the correct format so we need to convert it to GMT and then to the correct format
+                    // h->values = strdup("Mon, 26 Mar 2018 20:54:02 GMT");
                     h->next = NULL;
                     free(content_length);
                     // check if the file is a pdf
