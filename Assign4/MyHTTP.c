@@ -42,35 +42,7 @@ typedef struct Response
     struct Header *headers;
     char *entity_body;
 } Response;
-void free_header_request(struct Header *header)
-{
-    if (header)
-    {
-        free_header_request(header->next);
-        if (header->name)
-            free(header->name);
-        if (header->values)
-            free(header->values);
-        free(header);
-    }
-}
 
-
-void free_request(struct Request *request)
-{
-    if (request)
-    {
-        if (request->headers)
-            free_header_request(request->headers);
-        if (request->url)
-            free(request->url);
-        if (request->HTTP_version)
-            free(request->HTTP_version);
-        if (request->enttity_body)
-            free(request->enttity_body);
-        free(request);
-    }
-}
 void free_response(struct Response *request)
 {
     if (request)
@@ -614,7 +586,7 @@ int main()
     struct sockaddr_in server_address, client_address;
     server_address.sin_family = AF_INET;
     inet_aton("127.0.0.1", &server_address.sin_addr);
-    server_address.sin_port = htons(8080);
+    server_address.sin_port = htons(8084);
     printf("Server address: %s Port: %d\n", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
     if (bind(server_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {

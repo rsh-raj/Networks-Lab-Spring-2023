@@ -535,7 +535,6 @@ void send_put_request(int sockfd, char *finalUrl, char *IPaddress, char *content
     send(sockfd, request, strlen(request), 0); // get request sent to server
 }
 
-
 int main()
 {
     int sockfd;
@@ -624,7 +623,7 @@ int main()
                 size_t len = strcspn(file_name, ":");
                 file_name[len] = '\0';
                 printf("File name is %s\n", file_name);
-                
+
                 // char *file_name = "index.txt";
                 int file_size = find_content_length_value(responseStruct);
                 if (file_size < 0)
@@ -643,7 +642,8 @@ int main()
                     execvp(args[0], args);
                     exit(EXIT_SUCCESS);
                 }
-                else continue;
+                else
+                    continue;
             }
             else if (responseStruct->status_code == 404)
             {
@@ -665,8 +665,6 @@ int main()
                 printf("Unknown error\n");
                 continue;
             }
-
-            
         }
         else if (!strcmp(tokens[0], "PUT"))
         {
