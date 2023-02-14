@@ -566,7 +566,7 @@ int main()
     struct sockaddr_in server_address, client_address;
     server_address.sin_family = AF_INET;
     inet_aton("127.0.0.1", &server_address.sin_addr);
-    server_address.sin_port = htons(8081);
+    server_address.sin_port = htons(8080);
     printf("Server address: %s Port: %d\n", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
     if (bind(server_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {
