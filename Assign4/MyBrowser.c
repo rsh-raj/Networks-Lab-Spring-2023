@@ -10,13 +10,13 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <ctype.h>
+#include <poll.h>
 typedef enum Method
 {
     GET,
     PUT,
     UNSUPPORTED
 } Method;
-
 typedef struct Header
 {
     char *name;
@@ -183,8 +183,8 @@ void print_response(struct Response *request)
             printf("%32s: %s\n", h->name, h->values);
         }
 
-        puts("message-body:");
-        puts(request->entity_body);
+        // puts("message-body:");
+        // puts(request->entity_body);
     }
 }
 // helper function to receive the data in chunks(1024 bytes)
@@ -218,7 +218,7 @@ char *receiveHeader(int sockfd)
         }
         buff = tmp;
     }
-    printf("Header received succesfully!\n");
+    // printf("Header received succesfully!\n");
     // printf("Header: %s\n", buff);
     free(recvBuffer);
     return buff;
@@ -284,9 +284,9 @@ void send_response_file(int new_socket, char *url)
         send(new_socket, buffer, n, 0);
         totalBytes += n;
     }
-    printf("\nTotal bytes sent: %d\n", totalBytes);
+    printf("\nFILE sent successfully and total bytes sent: %d\n", totalBytes);
     fclose(fp);
-    printf("File sent successfully!\n");
+    // printf("File sent successfully!\n");
 }
 int find_content_length_value(struct Response *response)
 {
@@ -379,15 +379,13 @@ char **tokenize_command(char *cmd)
 
 void getIPandPort(char **tokens, char *IP, int *portnum)
 {
-    // GET http://127.0.0.1/home/adityach-01/logo.png:8080
-    // PUT http://127.0.0.1/home/adityach-01:8080 MyHTTP.c
-    // GET http://127.0.0.1/home/adityach-01/MyHTTP.c:8080
-    // PUT http://127.0.0.1/home:8080 MyBrowser.c
+    // GET http://127.0.0.1/home/rsh-raj/test.mkv:3000
     int flag = 0;
     int index = 0;
     int cnt = 0;
     char port[10];
     *portnum = 80; // default port number
+
     for (int i = 0; tokens[1][i] != '\0'; i++)
     {
 
@@ -400,8 +398,6 @@ void getIPandPort(char **tokens, char *IP, int *portnum)
                 IP[index++] = tokens[1][i++];
             }
             IP[index++] = '\0';
-            flag = 0;
-            continue;
         }
 
         else if (tokens[1][i] == '/')
@@ -426,32 +422,33 @@ void getIPandPort(char **tokens, char *IP, int *portnum)
     }
 }
 
-char * modifydate(int changeday){
+char *modifydate(int changeday)
+{
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     tm.tm_mday += changeday;
     mktime(&tm);
     char buf[50];
-    strcpy(buf,asctime(&tm));
+    strcpy(buf, asctime(&tm));
 
-    buf[strlen(buf)-1] = '\0';
+    buf[strlen(buf) - 1] = '\0';
     // printf("%s\n", buf);
 
     char **temp = tokenize_command(buf);
 
     // Now HTTP formatting
-    char *final = (char *)malloc(100*sizeof(char));
+    char *final = (char *)malloc(100 * sizeof(char));
     strcpy(final, temp[0]);
-    strcat(final,", ");
-    strcat(final,temp[2]);
-    strcat(final," ");
-    strcat(final,temp[1]);
-    strcat(final," ");
-    strcat(final,temp[4]);
-    strcat(final," ");
-    strcat(final,temp[3]);
-    strcat(final," ");
-    strcat(final,"IST");
+    strcat(final, ", ");
+    strcat(final, temp[2]);
+    strcat(final, " ");
+    strcat(final, temp[1]);
+    strcat(final, " ");
+    strcat(final, temp[4]);
+    strcat(final, " ");
+    strcat(final, temp[3]);
+    strcat(final, " ");
+    strcat(final, "IST");
 
     // printf("Final date : %s\n", final);
     return final;
@@ -488,8 +485,7 @@ void send_request_header(int sockfd, char *url, char *host)
     else
         strcat(request, "Accept: text/*");
     strcat(request, "Accept-Language: en-US,en;q=0.5\r\n");
-
-    // custom function to write date with offset in HTTP format
+    // strcat(request, "If-Modified-Since: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     char buf[200];
     strcpy(buf, "If-Modified-Since: ");
     strcat(buf, modifydate(-2));
@@ -497,7 +493,7 @@ void send_request_header(int sockfd, char *url, char *host)
 
     strcat(request, buf);
     strcat(request, "\r\n");
-    printf("Request sent to server is %s and length is %ld bytes \n", request, strlen(request));
+    // printf("Request sent to server is %s and length is %ld bytes \n", request, strlen(request));
     send(sockfd, request, strlen(request), 0); // get request sent to server
 }
 void send_put_request(int sockfd, char *finalUrl, char *IPaddress, char *contentlength)
@@ -516,7 +512,8 @@ void send_put_request(int sockfd, char *finalUrl, char *IPaddress, char *content
     strcat(request, "\r\n");
     strcat(request, "Connection: close\r\n");
     strcat(request, "Date: ");
-    strcat(request, "Thu, 01 Jan 1970 00:00:00 GMT\r\n");
+    strcat(request, modifydate(0));
+    strcat(request, "\r\n");
     strcat(request, "Content-Length: ");
     strcat(request, contentlength);
     strcat(request, "\r\n");
@@ -531,11 +528,13 @@ void send_put_request(int sockfd, char *finalUrl, char *IPaddress, char *content
         strcat(request, "Content-type: application/pdf");
     else
         strcat(request, "Content-type: text/*");
+    strcat(request, "\r\n");
     strcat(request, "Content-Language: en-US\r\n");
     strcat(request, "\r\n");
-    printf("Request sent to server is %s\n and length is %ld bytes \n", request, strlen(request));
+    // printf("Request sent to server is %s\n and length is %ld bytes \n", request, strlen(request));
     send(sockfd, request, strlen(request), 0); // get request sent to server
 }
+
 
 int main()
 {
@@ -559,24 +558,15 @@ int main()
         printf("MyOwnBrowser > ");
         fgets(cmd, 1000, stdin);
         cmd[strlen(cmd) - 1] = '\0';
-        printf("Command entered : %s\n", cmd);
-
         // tokenize the command and form an array of strings
-        printf("Tokens are : \n");
         char **tokens = tokenize_command(cmd);
         int i = 0;
-        while (tokens[i])
-        {
-            printf("%s\n", tokens[i]);
-            i++;
-        }
 
         if (!strcmp(tokens[0], "QUIT"))
             break;
 
         // parse the tokenized array to get the server IP and port
         getIPandPort(tokens, IPaddress, &port);
-        printf("Port is : %d and IP is %s\n", port, IPaddress);
 
         // sockfd = establish_connection(port, IPaddress);
         serv_addr.sin_family = AF_INET;
@@ -601,48 +591,88 @@ int main()
         char *finalUrl = malloc((len + 1) * sizeof(char));
         memcpy(finalUrl, url, len);
         finalUrl[len] = '\0';
-        printf("Final url is %s", finalUrl);
         printf("Connection established\n");
+        struct pollfd fd;
+        fd.fd = sockfd;
+        fd.events = POLLIN;
         if (strcmp(tokens[0], "GET") == 0)
         {
             send_request_header(sockfd, finalUrl, IPaddress);
+            int retVal = poll(&fd, 1, 3000); // wait for 3 seconds for response
+            if (retVal == 0)
+            {
+                printf("No Response from server, timeout occured\n");
+                close(sockfd);
+                continue;
+            }
             char *response = receiveHeader(sockfd);
             if (response == NULL)
             {
                 continue;
             }
             struct Response *responseStruct = parse_response(response);
-            print_response(responseStruct);
-            char *file_name = strrchr(url, '/');
-            file_name++;
-            size_t len = strcspn(file_name, ":");
-            file_name[len] = '\0';
-            printf("File name is %s\n", file_name);
-            // char *file_name = "index.txt";
-            int file_size = find_content_length_value(responseStruct);
-            if (file_size < 0)
+            if (responseStruct == NULL)
             {
-                printf("Error content-length header missing\n");
+                printf("Error in parsing response\n");
                 continue;
             }
-            receive_and_write_to_file(sockfd, file_name, file_size - strlen(responseStruct->entity_body), responseStruct->entity_body);
-            //fork a children and display the file
-            int pid = fork();
-            if (pid == 0)
+            print_response(responseStruct);
+            if (responseStruct->status_code == 200)
             {
-                // strcat(file_name, " &");
-                char *args[] = {"xdg-open", file_name,NULL};
-                // char *args2[]={"ls","-l",NULL};
-                execvp(args[0], args);
-                exit(EXIT_SUCCESS);
+                char *file_name = strrchr(url, '/');
+                file_name++;
+                size_t len = strcspn(file_name, ":");
+                file_name[len] = '\0';
+                printf("File name is %s\n", file_name);
+                
+                // char *file_name = "index.txt";
+                int file_size = find_content_length_value(responseStruct);
+                if (file_size < 0)
+                {
+                    printf("Error content-length header missing\n");
+                    continue;
+                }
+                receive_and_write_to_file(sockfd, file_name, file_size - strlen(responseStruct->entity_body), responseStruct->entity_body);
+                // fork a children and display the file
+                int pid = fork();
+                if (pid == 0)
+                {
+                    // strcat(file_name, " &");
+                    char *args[] = {"xdg-open", file_name, NULL};
+                    // char *args2[]={"ls","-l",NULL};
+                    execvp(args[0], args);
+                    exit(EXIT_SUCCESS);
+                }
+                else continue;
             }
-            else continue;
+            else if (responseStruct->status_code == 404)
+            {
+                printf("Given file doesn't exist on server\n");
+                continue;
+            }
+            else if (responseStruct->status_code == 403)
+            {
+                printf("Server denied access\n");
+                continue;
+            }
+            else if (responseStruct->status_code == 400)
+            {
+                printf("Bad Request\n");
+                continue;
+            }
+            else
+            {
+                printf("Unknown error\n");
+                continue;
+            }
+
+            
         }
         else if (!strcmp(tokens[0], "PUT"))
         {
             // send the put request
-            if (finalUrl[strlen(finalUrl) - 1] != '/') strcat(finalUrl, "/"); // append a / to the url
-            strcat(finalUrl, tokens[2]);     // append the file name to the url
+            strcat(finalUrl, "/");       // append a / to the url
+            strcat(finalUrl, tokens[2]); // append the file name to the url
             struct stat st;
             if (stat(tokens[2], &st) < 0)
             {
@@ -651,9 +681,16 @@ int main()
             }
             char *content_length = malloc(100 * sizeof(char));
             sprintf(content_length, "%ld", st.st_size);
-            printf("Content length is %s\n", content_length);
+            // printf("Content length is %s\n", content_length);
             send_put_request(sockfd, finalUrl, IPaddress, content_length);
             send_response_file(sockfd, tokens[2]);
+            int retVal = poll(&fd, 1, 3000); // wait for 3 seconds for response
+            if (retVal == 0)
+            {
+                printf("No Response from server, timeout occured\n");
+                close(sockfd);
+                continue;
+            }
             char *response = receiveHeader(sockfd);
             if (response == NULL)
             {
@@ -661,9 +698,26 @@ int main()
             }
             struct Response *responseStruct = parse_response(response);
             print_response(responseStruct);
+            if (responseStruct->status_code == 404)
+            {
+                printf("Given file doesn't exist on server\n");
+                continue;
+            }
+            else if (responseStruct->status_code == 403)
+            {
+                printf("Server denied access\n");
+                continue;
+            }
+            else if (responseStruct->status_code == 400)
+            {
+                printf("Bad Request\n");
+                continue;
+            }
+            else
+            {
+                printf("Unknown error\n");
+                continue;
+            }
         }
-
-        free(tokens);
     }
 }
-
