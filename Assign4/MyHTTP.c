@@ -69,6 +69,19 @@ void free_request(struct Request *request)
         free(request);
     }
 }
+void free_response(struct Response *request)
+{
+    if (request)
+    {
+        if (request->headers)
+            free_header_request(request->headers);
+        if (request->status_message)
+            free(request->status_message);
+        if (request->HTTP_version)
+            free(request->HTTP_version);
+        free(request);
+    }
+}
 struct Request *parse(const char *request)
 {
     if (strlen(request) < 3)
@@ -180,12 +193,12 @@ char *receiveHeader(int sockfd)
     char *recvBuffer = (char *)malloc(51 * sizeof(char));
     char *buff = (char *)malloc(51 * sizeof(char));
     strcpy(buff, "\0");
-    char *startingEntityBody;
     int length = 0;
     while (1)
     {
         resetBuffer(recvBuffer, 51);
         int x = recv(sockfd, recvBuffer, 50, 0);
+        // printf("%s \n", recvBuffer);
         // printf("x: %d", x);
         if (x <= 0)
         {
@@ -196,10 +209,15 @@ char *receiveHeader(int sockfd)
         char *endOfHeader = strstr(recvBuffer, "\r\n\r\n");
         if (endOfHeader)
         {
-            startingEntityBody = strdup(recvBuffer);
             break;
         }
-        realloc(buff, strlen(buff) + 51);
+        char *temp = realloc(buff, strlen(buff) + 51);
+        if (temp == NULL)
+        {
+            printf("Error reallocating memory!\n");
+            return;
+        }
+        buff = temp;
     }
     // printf("Header received succesfully!\n");
     free(recvBuffer);
@@ -248,6 +266,7 @@ void resetBuffer(char *buff, int size)
 }
 void send_response_header(int client_sockfd, struct Response *response)
 {
+
     char *responseString = malloc(strlen(response->HTTP_version) + 1);
     strcpy(responseString, response->HTTP_version);
     strcat(responseString, " ");
@@ -334,7 +353,6 @@ void send_response_file(int new_socket, char *url)
     int totalBytes = 0;
     while (1)
     {
-        printf("%s\n", buffer);
         if ((n = fread(buffer, 1, 1024, fp)) <= 0)
         {
             break;
@@ -391,7 +409,7 @@ int main()
     FILE *access_log = fopen("access_log.txt", "a");
 
     int server_fd, new_socket;
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         perror("socket failed");
         exit(EXIT_FAILURE);
@@ -399,7 +417,7 @@ int main()
     struct sockaddr_in server_address, client_address;
     server_address.sin_family = AF_INET;
     inet_aton("127.0.0.1", &server_address.sin_addr);
-    server_address.sin_port = htons(8080);
+    server_address.sin_port = htons(8081);
     printf("Server address: %s Port: %d\n", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
     if (bind(server_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {
@@ -432,15 +450,18 @@ int main()
             char *buff;
             buff = receiveHeader(new_socket);
             struct Request *req = parse(buff);
-            sprintf(record, "%d-%d-%d : %d:%d:%d : %s : %d : %s : %s\n", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec, inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port),req->request_method == 0 ? "GET" : "PUT", req->url);
+            free(buff);
+            sprintf(record, "%d-%d-%d : %d:%d:%d : %s : %d : %s : %s\n", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec, inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port), req->request_method == 0 ? "GET" : "PUT", req->url);
             fwrite(record, 1, strlen(record), access_log);
+            free(record);
             printf("Received request:\n");
             print_request(req);
-            struct Response *response = malloc(sizeof(struct Response));
+            // struct Response *response = malloc(sizeof(struct Response));
             if (req->request_method == 2) // Unsupported method
             {
-                set_header_and_HTTPversion(400, response);
-                send_response_header(new_socket, response);
+                // set_header_and_HTTPversion(400, response);
+                // send_response_header(new_socket, response);
+                send_put_response(new_socket, 400);
                 // exit(EXIT_SUCCESS);
             }
             else
@@ -451,13 +472,8 @@ int main()
                 if (!stat(req->url, &path_stat) && S_ISDIR(path_stat.st_mode))
                 {
                     // file is a directory then return 403
-                    if (req->request_method == 1)
-                    {
-                        send_put_response(new_socket, 403);
-                        exit(EXIT_SUCCESS);
-                    }
-                    set_header_and_HTTPversion(403, response);
-                    send_response_header(new_socket, response);
+
+                    send_put_response(new_socket, 403);
                     exit(EXIT_SUCCESS);
                 }
                 if ((req->request_method == 0))
@@ -466,21 +482,19 @@ int main()
                     // check if the file exists
                     if (access(req->url, F_OK | R_OK) < 0)
                     {
-                        // file doesn't exist or can't be read
-                        set_header_and_HTTPversion(404, response);
-                        send_response_header(new_socket, response);
                         printf("File doesn't exist or can't be read");
+                        send_put_response(new_socket, 404);
                         exit(EXIT_SUCCESS);
                     }
-
                     // file exists and can be read
+                    struct Response *response = malloc(sizeof(struct Response));
                     set_header_and_HTTPversion(200, response);
                     struct Header *h = response->headers;
                     struct stat st;
                     stat(req->url, &st);
 
                     char *if_modified_since = get_if_modified_since(req);
-                    int is_modified = 0;
+                    int is_modified = 1;
                     // if (!if_modified_since && ); compare the last modified date with the if_modified_since date both in GMT and then set is_modified to 0 if the file is not modified
                     char *content_length = malloc(100 * sizeof(char));
                     if (is_modified)
@@ -497,9 +511,9 @@ int main()
                     // h->values = strdup(ctime(&st.st_mtime)); // this is not in GMT and it is not in the correct format so we need to convert it to GMT and then to the correct format
                     h->values = strdup("Mon, 26 Mar 2018 20:54:02 GMT");
                     h->next = NULL;
+                    free(content_length);
                     // check if the file is a pdf
-                    char *extension = strrchr(req->url, '.');
-                    printf("%s\n", extension);
+
                     h->next = malloc(sizeof(struct Header));
                     if (h->next == NULL)
                     {
@@ -507,8 +521,12 @@ int main()
                     }
                     h = h->next;
                     h->name = strdup("Content-Type");
-
-                    if (strcmp(extension, ".pdf") == 0)
+                    char *extension = strrchr(req->url, '.');
+                    if (extension == NULL)
+                    {
+                        h->values = strdup("text/*");
+                    }
+                    else if (strcmp(extension, ".pdf") == 0)
                     {
                         // file is a pdf
                         h->values = strdup("application/pdf");
@@ -529,6 +547,7 @@ int main()
                         h->values = strdup("text/*");
                     }
                     h->next = NULL;
+
                     send_response_header(new_socket, response);
                     if (is_modified)
                         send_response_file(new_socket, req->url);
@@ -548,6 +567,7 @@ int main()
                     send_put_response(new_socket, 200);
                 }
             }
+            free_request(req);
             printf("Connection closed with client\n");
             exit(EXIT_SUCCESS);
         }
