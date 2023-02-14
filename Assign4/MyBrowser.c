@@ -276,7 +276,6 @@ void send_response_file(int new_socket, char *url)
     int totalBytes = 0;
     while (1)
     {
-        printf("%s\n", buffer);
         if ((n = fread(buffer, 1, 1024, fp)) <= 0)
         {
             break;
@@ -368,7 +367,7 @@ char **tokenize_command(char *cmd)
             exit(1);
         }
         cmdarr = tmp;
-        cmdarr[index] = (char *)malloc(100 * sizeof(char));
+        cmdarr[index] = (char *)malloc(1000 * sizeof(char));
 
         if (cmd[i] == '\0')
             break;
@@ -491,7 +490,7 @@ void send_put_request(int sockfd, char *finalUrl, char *IPaddress, char *content
         strcat(request, "Content-type: text/*");
     strcat(request, "Content-Language: en-US\r\n");
     strcat(request, "\r\n");
-    printf("Request sent to server is %s and length is %ld bytes \n", request, strlen(request));
+    printf("Request sent to server is %s\n and length is %ld bytes \n", request, strlen(request));
     send(sockfd, request, strlen(request), 0); // get request sent to server
 }
 

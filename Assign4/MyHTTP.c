@@ -207,9 +207,6 @@ char *receiveHeader(int sockfd)
 }
 void receive_and_write_to_file(int sockfd, char *url, int contentLength, char *startingMsg)
 {
-    printf("Writing to file: %s\n", url);
-    printf("Content-Length: %d\n", contentLength);
-    printf("Starting message: %s\n", startingMsg);
     FILE *fp = fopen(url, "w");
     if (fp == NULL)
     {
@@ -218,8 +215,6 @@ void receive_and_write_to_file(int sockfd, char *url, int contentLength, char *s
     }
     if (strcmp(startingMsg, "") != 0)
         fwrite(startingMsg, 1, strlen(startingMsg), fp);
-    printf("Starting message: %s\n", startingMsg);
-
     char *recvBuffer = (char *)malloc(1025 * sizeof(char));
     int length = 0;
     while (1)
@@ -227,8 +222,6 @@ void receive_and_write_to_file(int sockfd, char *url, int contentLength, char *s
         resetBuffer(recvBuffer, 1025);
 
         int x = recv(sockfd, recvBuffer, 1024, 0);
-        printf("x: %d\n", x);
-        printf("%s\n", recvBuffer);
         if (x == 0)
         {
             printf("Connection closed!\n");
@@ -276,7 +269,7 @@ void send_response_header(int client_sockfd, struct Response *response)
         strcat(responseString, "\r\n");
     }
     strcat(responseString, "\r\n");
-    printf("WHATS IN RESPONSE STRING:\n");
+    printf("FOLLOWING RESPONSE STRING HAS BEEN SENT TO SERVER:\n");
     printf("%s\n", responseString);
     send(client_sockfd, responseString, strlen(responseString), 0); // send the header and HTTP version
 }
@@ -332,7 +325,6 @@ void send_put_response(int client_sockfd, int status_code)
 }
 void send_response_file(int new_socket, char *url)
 {
-    // some bug it is not sending the whole file
 
     // send the file
     FILE *fp = fopen(url, "r");
@@ -372,6 +364,24 @@ int find_content_length_value(struct Request *request)
     }
     return -1;
 }
+char *get_if_modified_since(struct Request *request)
+{
+    struct Header *h;
+    for (h = request->headers; h; h = h->next)
+    {
+        char *len = strdup(h->name); // HTTP RFC says that header names are case-insensitive
+        for (int i = 0; len[i]; i++)
+        {
+            len[i] = tolower(len[i]);
+        }
+        // printf("len: %s\n", len);
+        if (strcmp(len, "if-modified-since") == 0)
+        {
+            return h->values;
+        }
+    }
+    return NULL;
+}
 int main()
 {
 
@@ -385,7 +395,7 @@ int main()
     struct sockaddr_in server_address, client_address;
     server_address.sin_family = AF_INET;
     inet_aton("127.0.0.1", &server_address.sin_addr);
-    server_address.sin_port = htons(8081);
+    server_address.sin_port = htons(8080);
     printf("Server address: %s Port: %d\n", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
     if (bind(server_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {
@@ -463,8 +473,13 @@ int main()
                     struct Header *h = response->headers;
                     struct stat st;
                     stat(req->url, &st);
+
+                    char *if_modified_since = get_if_modified_since(req);
+                    int is_modified = 0;
+                    // if (!if_modified_since && ); compare the last modified date with the if_modified_since date both in GMT and then set is_modified to 0 if the file is not modified
                     char *content_length = malloc(100 * sizeof(char));
-                    sprintf(content_length, "%ld", st.st_size);
+                    if(is_modified)sprintf(content_length, "%ld", st.st_size);
+                    else content_length = "0";
                     h->next = malloc(sizeof(struct Header));
                     h = h->next;
                     h->name = strdup("Content-Length");
@@ -472,7 +487,7 @@ int main()
                     h->next = malloc(sizeof(struct Header));
                     h = h->next;
                     h->name = strdup("Last-Modified");
-                    // h->values = strdup(ctime(&st.st_mtime));
+                    // h->values = strdup(ctime(&st.st_mtime)); // this is not in GMT and it is not in the correct format so we need to convert it to GMT and then to the correct format
                     h->values = strdup("Mon, 26 Mar 2018 20:54:02 GMT");
                     h->next = NULL;
                     // check if the file is a pdf
@@ -508,7 +523,7 @@ int main()
                     }
                     h->next = NULL;
                     send_response_header(new_socket, response);
-                    send_response_file(new_socket, req->url);
+                    if(is_modified) send_response_file(new_socket, req->url);
                 }
                 else
                 {
