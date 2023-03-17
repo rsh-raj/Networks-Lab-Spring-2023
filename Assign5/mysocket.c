@@ -11,14 +11,6 @@
 #include "mysocket.h"
 
 
-struct message_table
-{
-    int rear, front;
-    char **message_list;
-    int message_size[10];
-};
-
-struct message_table *Send_Message, *Received_Message;
 int recv_sock_fd = -1, send_sock_fd = -1;
 pthread_t R, S;
 pthread_attr_t attr;

@@ -1,9 +1,20 @@
+#include <stddef.h>
+
 #define SOCK_MyTCP 0
 #ifdef DEBUG
 #define DEBUG_TEST 1
 #else
 #define DEBUG_TEST 0
 #endif
+
+struct message_table
+{
+    int rear, front;
+    char **message_list;
+    int message_size[10];
+};
+struct message_table *Send_Message, *Received_Message;
+
 
 void *handle_receive(void *);
 void *handle_send(void *);
