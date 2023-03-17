@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
-
+#include <mysocket.h>
 int main()
 {
 
@@ -29,7 +29,6 @@ int main()
         exit(0);
     }
     x = my_listen(sockfd, 1);
-    printf("%d\n", x);
 
     printf("SERVER IS LISTENING AT 6000\n");
     while (1)
@@ -58,6 +57,7 @@ int main()
             printf("%s", recv_msg);
         }
         printf("Done with client\n");
+        my_close(new_sockfd);
     }
 
     return 0;

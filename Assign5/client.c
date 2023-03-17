@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <mysocket.h>
 
 int main()
 {
