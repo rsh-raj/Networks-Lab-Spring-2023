@@ -8,18 +8,16 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
-#define SOCK_MyTCP 0
-#ifdef DEBUG
-#define DEBUG_TEST 1
-#else
-#define DEBUG_TEST 0
-#endif
+#include "mysocket.h"
+
+
 struct message_table
 {
     int rear, front;
     char **message_list;
     int message_size[10];
 };
+
 struct message_table *Send_Message, *Received_Message;
 int recv_sock_fd = -1, send_sock_fd = -1;
 pthread_t R, S;
