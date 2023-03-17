@@ -98,7 +98,7 @@ void *handle_send(void *arg)
         // if send_message queue is empty then sleep and wait
         if (Send_Message->rear == Send_Message->front)
         {
-            // sleep(5);
+            sleep(5);
             continue;
         }
         if (DEBUG_TEST)
@@ -218,6 +218,7 @@ ssize_t my_send(int fd, void *buf, ssize_t n, int flags)
     send_sock_fd = fd;
     while ((Send_Message->front + 1) % 10 == Send_Message->rear)
     {
+        sleep(5);
         continue;
     }
     char *buff = buf;
@@ -239,6 +240,7 @@ void my_close(int sockfd)
     // destroy the tables
     for (int i = 0; i < 10; i++)
     {
+        
         free(Send_Message->message_list[i]);
         free(Received_Message->message_list[i]);
     }
