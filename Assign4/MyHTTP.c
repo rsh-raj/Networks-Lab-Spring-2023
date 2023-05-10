@@ -42,7 +42,34 @@ typedef struct Response
     struct Header *headers;
     char *entity_body;
 } Response;
+void free_header_request(struct Header *header)
+{
+    if (header)
+    {
+        free_header_request(header->next);
+        if (header->name)
+            free(header->name);
+        if (header->values)
+            free(header->values);
+        free(header);
+    }
+}
 
+void free_request(struct Request *request)
+{
+    if (request)
+    {
+        if (request->headers)
+            free_header_request(request->headers);
+        if (request->url)
+            free(request->url);
+        if (request->HTTP_version)
+            free(request->HTTP_version);
+        if (request->enttity_body)
+            free(request->enttity_body);
+        free(request);
+    }
+}
 void free_response(struct Response *request)
 {
     if (request)
@@ -170,34 +197,6 @@ int getmonth(char *s)
         return 11;
     else
         return -1;
-}
-
-void free_header_request(struct Header *header)
-{
-    if (header)
-    {
-        free_header_request(header->next);
-        if (header->name)
-            free(header->name);
-        if (header->values)
-            free(header->values);
-        free(header);
-    }
-}
-void free_request(struct Request *request)
-{
-    if (request)
-    {
-        if (request->headers)
-            free_header_request(request->headers);
-        if (request->url)
-            free(request->url);
-        if (request->HTTP_version)
-            free(request->HTTP_version);
-        if (request->enttity_body)
-            free(request->enttity_body);
-        free(request);
-    }
 }
 
 char **tokenize_command(char *cmd)
@@ -569,7 +568,6 @@ char *get_if_modified_since(struct Request *request)
     }
     return NULL;
 }
-
 int main()
 {
 
@@ -586,7 +584,7 @@ int main()
     struct sockaddr_in server_address, client_address;
     server_address.sin_family = AF_INET;
     inet_aton("127.0.0.1", &server_address.sin_addr);
-    server_address.sin_port = htons(8084);
+    server_address.sin_port = htons(8086);
     printf("Server address: %s Port: %d\n", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
     if (bind(server_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
     {
@@ -649,6 +647,7 @@ int main()
                 {
                     // handle GET request
                     // check if the file exists
+                    printf("%s\n", req->url);
                     if (access(req->url, F_OK | R_OK) < 0)
                     {
                         printf("File doesn't exist or can't be read");
@@ -665,7 +664,7 @@ int main()
                     char *last_modified = modifydate(0, dt);
                     char *if_modified_since = get_if_modified_since(req);
                     int is_modified = 1;
-                    if (!if_modified_since && compare_date(last_modified, if_modified_since))
+                    if (if_modified_since && compare_date(last_modified, if_modified_since))
                         is_modified = 0;
                     // if (!if_modified_since && ); compare the last modified date with the if_modified_since date both in GMT and then set is_modified to 0 if the file is not modified
                     char *content_length = malloc(100 * sizeof(char));
