@@ -1,0 +1,114 @@
+* {
+    box-sizing:border-box;
+    font-family:sans-serif;
+}
+div.header {
+    text-align:center;
+    background-color:mediumspringgreen;
+    padding:10px;
+    margin:0;
+}
+div.questbox{
+    width:90%;
+    height:auto;
+    margin:5%;
+    background-color:teal;
+    padding:30px 10px;
+    border-radius:5px;
+}
+div.answerbox{
+    padding:2%;
+    margin:5%;
+    background-color:turquoise;
+    border-radius:5px;
+    font-size:20px;
+    text-align:center;
+}
+div.ques{
+    color:white;
+    text-align:center;
+    font-size:25px;
+}
+div.answerbox:hover{
+    background-color:palegreen;
+    cursor:pointer;
+}
+/* div.previous{
+    margin-left:15%;
+    float:left;
+    background-color:slategray;
+    padding:10px;
+    margin-top:20px;
+    border-radius:5px;
+    font-size:20px;
+    margin-bottom:100px; */
+
+div.next{
+    margin-right:15%;
+    float:right;
+    background-color:mediumspringgreen;
+    padding:10px;
+    margin-top:20px;
+    border-radius:5px;
+    font-size:20px;
+    margin-bottom:100px;
+}
+div.active{
+    background-color:mediumspringgreen;
+    margin-left:15%;
+    float:left;
+    padding:10px;
+    margin-top:20px;
+    border-radius:5px;
+    font-size:20px;
+    margin-bottom:100px;
+}
+div.next:hover{
+    cursor:pointer;
+}
+div.active:hover{
+    cursor:pointer;
+}
+div.universal{
+    background-color:rgb(54, 173, 54);
+    margin-bottom:0;
+}
+div.footer{
+    background-color:rgb(54, 173, 54);
+    /* border:1px solid black; */
+    bottom:0;
+    height:170px;
+}
+@media only screen and (min-width:600px){
+    div.questbox{
+width:60%;
+margin-left:20%;
+    }
+    div.next {
+        margin-right:30%;
+        margin-top:1px;
+        
+    }
+    div.active {
+        margin-left:30%;
+        margin-top:1px;
+    }
+}
+@media only screen and (min-width:800px){
+    div.child1 , div.child3{
+        float:left;
+        width:40%;
+        margin:2%;
+        margin-top:5%;
+    }
+    div.child2 , div.child4{
+        float:right;
+        width:40%;
+        margin:2%;
+        margin-top:5%;
+    }
+    div.questbox{
+        height:350px;
+        padding:30px 20px;
+    }
+}

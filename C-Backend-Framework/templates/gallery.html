@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/css/gallery.css">
+    <title>Document</title>
+</head>
+
+<body>
+    <h1>Image Gallery</h1>
+    <div class="universal">
+
+         <div class="content">
+    <img class="up" src="https://tse4.mm.bing.net/th?id=OIP.ey2PZt5xmjqJP2aPQce9ygHaEK&pid=Api&P=0&w=272&h=154">
+
+    <div class="indicator">1/4</div>
+    <div class="previous" onclick="movement(-1)">&#10094;</div>
+    <div class="forward" onclick="movement(1)">&#10095;</div>
+
+    <div class="desc">Waterfall</div>
+        </div> 
+
+       <div class="content" id="wallah">
+     <img class="up" src="https://tse1.mm.bing.net/th?id=OIP.1YM53mG10H_U25iPjop83QHaEo&pid=Api&P=0&w=314&h=197">
+        
+        <div class="indicator">2/4</div>
+        <div class="previous" onclick="movement(-1)">&#10094;</div>
+        <div class="forward" onclick="movement(1)">&#10095;</div>
+
+        <div class="desc">Mountains</div>
+        </div>     
+
+    <div class="content" id="habibi">
+     <img class="up" src="https://tse4.mm.bing.net/th?id=OIP.llLyid6JTh61kOzW3-rhGgHaEK&pid=Api&P=0&w=276&h=156">
+                
+        <div class="indicator">3/4</div>
+        <div class="previous" onclick="movement(-1)">&#10094;</div>
+        <div class="forward" onclick="movement(1)">&#10095;</div>
+
+        <div class="desc">Icy Lake</div>
+    </div>    
+    
+    <div class="content">
+        <img class="up" src="https://tse2.mm.bing.net/th?id=OIP.t6J5F2eaevzGLk_pl0xFwQHaE8&pid=Api&P=0&w=241&h=161">
+                   
+           <div class="indicator">4/4</div>
+           <div class="previous" onclick="movement(-1)">&#10094;</div>
+           <div class="forward" onclick="movement(1)">&#10095;</div>
+   
+           <div class="desc">Hot Desert</div>
+       </div>    
+    
+
+    <!-- bottom part of the gallery -->
+
+
+
+    <div onclick="jump(0)" class="test1">
+        <img class="down" src="https://tse4.mm.bing.net/th?id=OIP.ey2PZt5xmjqJP2aPQce9ygHaEK&pid=Api&P=0&w=272&h=154">
+    </div>
+
+    <div onclick="jump(1)" class="test">
+        <img class="down" src="https://tse1.mm.bing.net/th?id=OIP.1YM53mG10H_U25iPjop83QHaEo&pid=Api&P=0&w=314&h=197">
+    </div>
+
+    <div onclick="jump(2)" class="test">
+        <img class="down" src="https://tse4.mm.bing.net/th?id=OIP.llLyid6JTh61kOzW3-rhGgHaEK&pid=Api&P=0&w=276&h=156">
+    </div>
+
+    <div onclick="jump(3)" class="test">
+        <img class="down" src="https://tse2.mm.bing.net/th?id=OIP.t6J5F2eaevzGLk_pl0xFwQHaE8&pid=Api&P=0&w=241&h=161">
+    </div>
+</div>
+
+    <script src="static/js/gallery.js"></script>
+</body>
+</html>

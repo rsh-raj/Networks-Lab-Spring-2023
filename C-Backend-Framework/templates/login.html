@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/css/sign_up.css">
+    <title>Document</title>
+</head>
+<body>
+    <form acton="submit" method="POST">
+        <br>
+        <div class="complete">
+      
+      
+        <h3 align="center"><b>Login</b></h3>
+        <br>
+        <div class="form-group">
+          <!-- <label for="email">Email Address</label> -->
+          <input
+            type="email"
+            class="form-control"
+            id="email"
+            name="email"
+            placeholder="Enter email"
+          />
+        </div>
+        <br>
+        <div class="form-group">
+          <div class="dropdown">
+            <label for="cars"><h5>Who are you ?</h5></label>
+            <select name="cred" id="cred">
+              <option value="Customer">Customer</option>
+              <option value="Staff">Staff</option>
+              <option value="Manager">Manager</option>
+            </select>
+          </div>
+          </div>
+          <br>
+        <div class="form-group">
+          <!-- <label for="password">Password</label> -->
+          <input
+            type="password"
+            class="form-control"
+            id="password"
+            name="password"
+            placeholder="Enter password"
+          />
+        </div>
+        <br />
+        <button type="submit" class="btn"><b>Login</b></button>
+        <br>
+        <div class="bottom">
+          Not having an account ? <a href="/sign-up">Sign up</a>
+        </div>
+      </div>
+      </form>
+</body>
+</html>

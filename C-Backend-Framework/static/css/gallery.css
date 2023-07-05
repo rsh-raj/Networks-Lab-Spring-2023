@@ -1,0 +1,119 @@
+h1 {
+    text-align:center;
+}
+* {
+    box-sizing:border-box;
+    font-family:sans-serif;
+}
+img.up {
+    width:80%;
+    margin-left:10%;
+    height:350px;
+}
+div.content{
+    width:100%;
+    display:block;
+    /* border:1px solid black; */
+    position:relative;
+}
+div.indicator{
+    color:white;
+    background-color:black;
+    border-radius:20px;
+    position:absolute;
+    top:3%;
+    left:13%;
+    padding:5px;
+}
+div.previous{
+    top:45%;
+    left:13%;
+    color:white;
+    font-size:30px;
+    position:absolute;
+    cursor:pointer;
+    padding:5px 10px;
+    border-radius:10px;
+}
+div.forward{
+    top:45%;
+    right:13%;
+    color:white;
+    font-size:30px;
+    position:absolute;
+    cursor:pointer;
+    padding:5px 10px;
+    border-radius:10px;
+}
+div.forward:hover{background-color:black;}
+div.previous:hover{background-color:black;}
+
+div.desc{
+    width:80%;
+    position:absolute;
+    background-color:black;
+    color:white;
+    font-family:sans-serif;
+    bottom:0;
+    text-align:center;
+    margin-left:10%;
+    padding:20px;
+    font-size:20px;
+}
+div.test{
+    width:20%;
+    margin:0;
+    height:100px;
+    /* border:1px solid black; */
+    float:left;
+    
+}
+img.down {
+    width:100%;
+    height:auto;
+    height:100px;
+    opacity:0.5;
+    margin-bottom:200px;
+}
+div.test1{
+    width:20%;
+    margin:0;
+    height:100px;
+    /* border:1px solid black; */
+    float:left;
+    margin-left:10%;
+}
+div img.active{
+    opacity:0.8;
+}
+img.down:hover{opacity:0.8;
+cursor:pointer;}
+
+@media only screen and (min-width:1000px) {
+    img.up {
+        height:500px;
+    }
+    img.down {
+        height:150px;
+    }
+}
+@media only screen and (max-width:600px) {
+    img.up {
+        height:300px;
+    }
+    img.down {
+        height:75px;
+    }
+}
+@media only screen and (max-width:420px) {
+    img.up {
+        height:200px;
+    }
+    img.down {
+        height:50px;
+    }
+    div.previous {top:35%;}
+    div.forward {top:35%;}
+    div.desc {padding:10px;
+    font-size:15px;}
+}

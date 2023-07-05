@@ -1,0 +1,13 @@
+a.out
+*.pdf
+*.o
+*.json
+.vscode
+node_modules
+# static
+# templates
+test
+test.c
+test2.c
+*.txt
+server

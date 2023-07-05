@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/nav.css">
+
+    <title>Document</title>
+</head>
+<body>
+
+    <nav>
+        <a href = '/'>
+          <div class="menu-icon">
+            <span class="fas fa-bars"></span>
+          </div>
+          <div class="logo">
+            <img src="/static/images/newlogo.png" class="img-logo">
+          </div>
+        </a>
+  
+        <div class="nav-items">
+           <li><a href="/">Home</a></li>
+           <li><a href="/about">Account</a></li>
+           <li><a href="/gallery">Gallery</a></li>
+           <li><a href="/quiz">Quiz</a></li>
+           <li><a href="/login">login</a></li>
+        </div>
+        
+        <div class="search-icon">
+           <span class="fas fa-search"></span>
+        </div>
+        <div class="cancel-icon">
+           <span class="fas fa-times"></span>
+        </div>
+        <form method="POST">
+           <input type="search" name = "searched" id = "searched" class="search-data" placeholder="Search" required>
+           <button type="submit" class="fas fa-search" formaction = "/search"></button>
+        </form>
+     </nav>
+
+
+</body>
+</html>

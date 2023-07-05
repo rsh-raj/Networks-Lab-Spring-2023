@@ -1,0 +1,54 @@
+body {
+    background-color: rgba(0,0,0);
+    background-image: url('/static/images/newlogo.png');
+    background-repeat: no-repeat;
+    color: white;
+}
+
+
+.form-group{
+    text-align: center;
+}
+
+.form-control{
+    width:300px;
+    display: block;
+    margin : 0 auto;
+}
+
+.btn{
+    display: block;
+    margin: 0 auto;
+    width : 300px;
+    background-color: red;
+    color:white;
+}
+
+.complete{
+    padding:50px;
+    margin: 0;
+    max-width:500px; 
+    border: 1px solid #ccc;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);  
+}
+
+.bottom{
+    text-align: center;
+}
+
+.btn-secondary{
+    display: block;
+    margin: 0 auto;
+    width : 300px;
+    background-color: white;
+    color:black;
+}
+
+#cred{
+    background-color: white;
+    color:black;
+    border: 5px solid black;
+}
