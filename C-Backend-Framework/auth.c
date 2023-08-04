@@ -12,6 +12,8 @@
 extern int check;
 session_head *head_ptr;
 int auth = 0;
+#define HASHTABLE_SIZE 100
+route *hashtable[HASHTABLE_SIZE];
 
 void LoginManager()
 {

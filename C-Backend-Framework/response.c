@@ -15,6 +15,7 @@
 #include <ctype.h>
 
 extern int cors;
+char origin[100];
 
 // frees the response data structures
 void free_response(struct Response *response)

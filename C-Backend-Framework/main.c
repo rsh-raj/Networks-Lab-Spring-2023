@@ -13,7 +13,7 @@ int user_loader(Request *req, char *pk, int socket, int status)
     // and then load the user info into the current_user dictinary in request struct
 
     // populates current user in the req array
-    if (!pk || strcmp(pk, "adityachoudhary.01m@gmail.com") != 0)
+    if (!pk || strcmp(pk, "rishiraj45035@gmail.com") != 0)
     {
         char url_f[100];
         strcpy(url_f, "/login");
@@ -51,19 +51,19 @@ OUT about(Request *req, int new_socket)
     // Dictionary c[4];
     // int val = 20;
     // Dictionary a1 = init_dict();
-    // a1.insert(&a1, "name", "aditya", 1);
+    // a1.insert(&a1, "name", "rishi", 1);
     // a1.insert(&a1, "age", &val, 0);
-    // a1.insert(&a1, "god", "true", 0);
+    // a1.insert(&a1, "male", "true", 0);
 
     // Dictionary a2 = init_dict();
-    // a1.insert(&a2, "name", "aditya", 1);
+    // a1.insert(&a2, "name", "rishi", 1);
     // a1.insert(&a2, "age", &val, 0);
-    // a1.insert(&a2, "god", "true", 0);
+    // a1.insert(&a2, "male", "true", 0);
 
     // Dictionary a3 = init_dict();
-    // a1.insert(&a3, "name", "aditya", 1);
+    // a1.insert(&a3, "name", "rishi", 1);
     // a1.insert(&a3, "age", &val, 0);
-    // a1.insert(&a3, "god", "true", 0);
+    // a1.insert(&a3, "male", "true", 0);
 
     // c[0] = a1;
     // c[1] = a2;
@@ -71,7 +71,7 @@ OUT about(Request *req, int new_socket)
     // c[3] = d;
 
     return render_template(new_socket, "about.html");
-    // jsonify(new_socket, 200, c,1,4);
+    // return jsonify(new_socket, 200, c,1,4);
 
     // return NULL;
 }
@@ -85,7 +85,7 @@ OUT login(Request *req, int new_socket)
         void *email = d.search(&d, "email");
         void *pass = d.search(&d, "password");
 
-        int x = strcmp((char *)email, "adityachoudhary.01m@gmail.com");
+        int x = strcmp((char *)email, "rishiraj45035@gmail.com");
         int y = strcmp((char *)pass, "1234");
 
 
@@ -157,9 +157,9 @@ int main(int argc, char *argv[])
         port = atoi(argv[1]);
     }
 
-    char *methods[] = {"GET", "POST"};
+    char *methods[] = {"GET", "POST"}; 
     int num = 2;
-    LoginManager();
+    // LoginManager();
     add_route("/", &home, methods, num);
     add_route("/login", &login, methods, num);
     add_route("/about", &about, methods, num);
@@ -167,9 +167,9 @@ int main(int argc, char *argv[])
     add_route("/gallery", &gallery, methods, num);
     add_route("/gallery/<int:id>", &about_id, methods, num);
     CORS_enable("http://127.0.0.1:8080, http://127.0.0.1:8081");
-    login_required("/about");
-    login_required("/quiz");
-    login_required("/gallery");
+    // login_required("/about");
+    // login_required("/quiz");
+    // login_required("/gallery");
     create_app(port);
 
     return 0;

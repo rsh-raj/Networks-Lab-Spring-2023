@@ -32,10 +32,8 @@ typedef struct route
     struct route *next;
 } route;
 
-char origin[100];
-#define HASHTABLE_SIZE 100
+
 void resetBuffer(char *buff, int size);
-route *hashtable[HASHTABLE_SIZE];
 int hash(char *s);
 void init_hash_table();
 
